@@ -1,18 +1,69 @@
 from io import BytesIO
 import os
+import time
 import tkinter as tk
 from tkinter import ttk
-from flask.cli import load_dotenv
+from dotenv import load_dotenv
 import openai
 import requests
 from PIL import Image, ImageTk
+
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Image as ReportLabImage, Paragraph
+from reportlab.lib.styles import getSampleStyleSheet
+from tkinter import messagebox
+
+pil_image_path = "c:\\temp\\temp__storytelling_image.png"
+
+generated_image = None
 
 load_dotenv()
 key = os.getenv("OPENAI_API_KEY")
 openai.api_key = key
 
 
-def generateImage(animal1, animal2, scenario):
+def set_wait_cursor():
+    submit_btn.config(cursor="watch")
+    app.update_idletasks()  # Force an immediate update of the window
+    time.sleep(2)  # Simulate some long operation
+
+
+def set_normal_cursor():
+    submit_btn.config(cursor="")
+
+
+def create_pdf(dialog_text):
+    if not dialog_text:
+        messagebox.showerror("Error", "Please generate the dialog first!")
+        return
+
+    # 3. Create a PDF with both the extracted image and some text
+    doc = SimpleDocTemplate("output.pdf", pagesize=letter)
+
+    # Create the contents list for the PDF
+    contents = []
+
+    # Add the extracted image
+    # Adjust width and height as needed
+    img = ReportLabImage(pil_image_path, width=2.5*inch, height=2.5*inch)
+    contents.append(img)
+
+    # Add some text
+    dialog_text = '<br/>' + dialog_text
+    dialog_text = dialog_text.replace('\n', '<br/><br/>')
+    styles = getSampleStyleSheet()
+    paragraph = Paragraph(dialog_text, styles['Normal'])
+    contents.append(paragraph)
+
+    # Build the PDF
+    doc.build(contents)
+
+    # message box saying we finished generating the PDF
+    messagebox.showinfo("PDF Created", "PDF created successfully!")
+
+
+def generate_image(animal1, animal2, scenario):
     response = openai.Image.create(
         model="image-alpha-001",
         prompt=f"cartoon image of a {animal1} and a {animal2} discussing {scenario}",
@@ -40,12 +91,18 @@ def display_image_from_url(image_holder, url):
 
     # Open and display the image using PIL and tkinter
     image = Image.open(image_data)
+
+    # Save the image as a PNG
+    image.save(pil_image_path, "PNG")
+
     photo = ImageTk.PhotoImage(image)
 
     update_label_with_new_image(image_holder, photo)
+    return image
 
 
 def submit():
+    set_wait_cursor()
     animal1 = combo1.get()
     animal2 = combo2.get()
     scenario = entry_box.get()
@@ -71,8 +128,9 @@ def submit():
     result_text.insert(tk.END, chatGPTAnswer)
     result_text.config(state="disabled")
 
-    image_url = generateImage(animal1, animal2, scenario)
+    image_url = generate_image(animal1, animal2, scenario)
     display_image_from_url(image_holder, image_url)
+    set_normal_cursor()
 
 
 app = tk.Tk()
@@ -104,6 +162,11 @@ entry_box.grid(column=1, row=2, padx=10, pady=5)
 # Button to submit the details
 submit_btn = ttk.Button(app, text="Submit", command=submit)
 submit_btn.grid(column=1, row=3, padx=10, pady=20)
+
+# Button to submit the details
+create_pdf_btn = ttk.Button(
+    app, text="Create Pdf", command=lambda: create_pdf(result_text.get(1.0, tk.END)))
+create_pdf_btn.grid(column=2, row=3, padx=10, pady=20)
 
 # make it scrollable
 # Create a Scrollbar widget
