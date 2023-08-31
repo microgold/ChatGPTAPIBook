@@ -137,6 +137,12 @@ venv.bak/
 
 # mkdocs documentation
 /site
+/StoryTelling/storytelling
+/Translator/translator
+/EarlyLesson
+
+# virtual environments
+
 
 # mypy
 .mypy_cache/
@@ -159,3 +165,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 *.pdf
+*.mp3
+markua_guid.md
