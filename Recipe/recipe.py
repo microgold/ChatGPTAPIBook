@@ -3,31 +3,37 @@ import openai
 import os
 from dotenv import load_dotenv
 
-# Load the environment variables
+# Initialize environment variables
 load_dotenv()
 
 app = Flask(__name__)
-# Fetch the API key from environment variables
+
+# Securely fetch the API key using the dotenv library
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
 
 @app.route('/')
 def index():
+    # Display the main ingredient input page
     return render_template('index.html')
 
 
 @app.route('/generate_recipe', methods=['POST'])
 def generate_recipe():
+    # Extract the three ingredients from the user's input
     ingredients = request.form.getlist('ingredient')
 
     if len(ingredients) != 3:
-        return "You must provide exactly 3 ingredients."
+        return "Kindly provide exactly 3 ingredients."
 
-    prompt = f"Create a recipe in html using these ingredients: {', '.join(ingredients)}. \
-        Ensure the ingredients of the recipe appear on the top, \
-        and the instructions appear on the bottom."
-    # prompt = 'Hi There'
+    # Craft a conversational prompt for ChatGPT, specifying our needs
+    prompt = f"Craft a recipe in HTML using \
+        {', '.join(ingredients)}. \
+        Ensure the recipe ingredients appear at the top, \
+        followed by the step-by-step instructions."
     messages = [{'role': 'user', 'content': prompt}]
+
+    # Engage ChatGPT to receive the desired recipe
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
         messages=messages,
@@ -37,9 +43,10 @@ def generate_recipe():
         presence_penalty=0.6,
     )
 
+    # Extract the recipe from ChatGPT's response
     recipe = response["choices"][0]["message"]["content"]
 
-    # render a new page containing the recipe
+    # Showcase the recipe on a new page
     return render_template('recipe.html', recipe=recipe)
 
 
