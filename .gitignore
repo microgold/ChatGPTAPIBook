@@ -167,3 +167,5 @@ cython_debug/
 *.pdf
 *.mp3
 markua_guid.md
+**/Scripts/
+*.cfg

@@ -39,30 +39,21 @@ def translate(language1, language2, text):
         presence_penalty=0.6,
     )
 
-    chatGPTTranslation = response["choices"][0]["message"]["content"]
-
-    # Parse JSON string to a Python dictionary
-    parsed_json = json.loads(chatGPTTranslation)
-    print(parsed_json)
-    # Extract value associated with the key "text"
-    if (parsed_json["text"] == ""):
-        parsed_json["text"] = "Sorry, I didn't understand that. Please try again."
-        return
-    chatGPTTranslation = parsed_json["text"]
-    print(chatGPTTranslation)
-    return chatGPTTranslation
+    chat_gpt_translation = response["choices"][0]["message"]["content"]
+    print('translation: ' + chat_gpt_translation)
+    return chat_gpt_translation
 
 
 def text_to_speech(translated_text, language):
     set_label("Playing...")
     tts = gTTS(translated_text, lang=languages[language], slow=False)
-    tts.save('C:\\temp\\hello.mp3')
+    tts.save('C:\\temp\\translation.mp3')
     # 5. Convert Translated Text to Speech
     # Placeholder for a TTS service (like Google Cloud TTS).
 
     # Initialize pygame mixer
     pygame.mixer.init()
-    pygame.mixer.music.load('C:\\temp\\hello.mp3')
+    pygame.mixer.music.load('C:\\temp\\translation.mp3')
     pygame.mixer.music.play()
 
 
@@ -73,7 +64,7 @@ def text_to_speech(translated_text, language):
     # close the mp3 file
     pygame.mixer.music.stop()
     pygame.mixer.quit()
-    os.remove('C:\\temp\\hello.mp3')
+    os.remove('C:\\temp\\translation.mp3')
 
 
 def capture_audio():
@@ -107,8 +98,8 @@ def transcribe():
     set_label("Transcribing...")
     transcription = openai.Audio.transcribe(model='whisper-1', file=audio_file)
     audio_file.close()
-    print(f'{transcription}\n\n')
-    return transcription
+    print('transcription: ' + f'{transcription["text"]}\n\n')
+    return transcription["text"]
 
 
 def reset_status():
@@ -139,8 +130,31 @@ def submit():
 
 
 # create a dictionary to store the languages and their corresponding codes
-languages = {'English': 'en', 'Spanish': 'es',
-             'French': 'fr', 'German': 'de', 'Russian': 'ru'}
+languages = {
+    'English': 'en',
+    'Spanish': 'es',
+    'French': 'fr',
+    'German': 'de',
+    'Russian': 'ru',
+    'Chinese (Simplified)': 'zh-CN',
+    'Chinese (Traditional)': 'zh-TW',
+    'Japanese': 'ja',
+    'Korean': 'ko',
+    'Italian': 'it',
+    'Portuguese': 'pt',
+    'Arabic': 'ar',
+    'Dutch': 'nl',
+    'Swedish': 'sv',
+    'Turkish': 'tr',
+    'Greek': 'el',
+    'Hebrew': 'he',
+    'Hindi': 'hi',
+    'Indonesian': 'id',
+    'Thai': 'th',
+    'Filipino': 'tl',
+    'Vietnamese': 'vi'
+    # ... potentially more based on actual Whisper support
+}
 
 
 app = tk.Tk()
@@ -151,7 +165,7 @@ style = ttk.Style()
 label1 = ttk.Label(app, text="Select Known Language")
 label1.grid(column=0, row=0, padx=10, pady=5)
 combo1 = ttk.Combobox(
-    app, values=["English", "Spanish", "French", "German", "Russian"])
+    app, values=list(languages.keys()))
 combo1.grid(column=1, row=0, padx=10, pady=5)
 combo1.set("English")
 
@@ -159,7 +173,7 @@ combo1.set("English")
 label2 = ttk.Label(app, text="Select Translated Language:")
 label2.grid(column=0, row=1, padx=10, pady=5)
 combo2 = ttk.Combobox(
-    app, values=["English", "Spanish", "French", "German", "Russian"])
+    app, values=list(languages.keys()))
 combo2.grid(column=1, row=1, padx=10, pady=5)
 combo2.set("Spanish")
 
