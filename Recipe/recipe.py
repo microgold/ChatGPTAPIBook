@@ -11,17 +11,51 @@ app = Flask(__name__)
 # Securely fetch the API key using the dotenv library
 openai.api_key = os.getenv('OPENAI_API_KEY')
 
+dietary_restrictions = [
+    "Gluten-Free",
+    "Dairy-Free",
+    "Vegan",
+    "Pescatarian",
+    "Nut-Free",
+    "Kosher",
+    "Halal",
+    "Low-Carb",
+    "Organic",
+    "Locally Sourced",
+]
+
+cuisines = [
+    "",
+    "Italian",
+    "Mexican",
+    "Chinese",
+    "Indian",
+    "Japanese",
+    "Thai",
+    "French",
+    "Mediterranean",
+    "American",
+    "Greek",
+]
+
 
 @app.route('/')
 def index():
     # Display the main ingredient input page
-    return render_template('index.html')
+    return render_template('index.html', cuisines=cuisines, dietary_restrictions=dietary_restrictions)
 
 
 @app.route('/generate_recipe', methods=['POST'])
 def generate_recipe():
     # Extract the three ingredients from the user's input
     ingredients = request.form.getlist('ingredient')
+
+    # Extract cuisine and restrictions
+    selected_cuisine = request.form.get('cuisine')
+    selected_restrictions = request.form.getlist('restrictions')
+
+    print('selected_cuisine: ' + selected_cuisine)
+    print('selected_restrictions: ' + str(selected_restrictions))
 
     if len(ingredients) != 3:
         return "Kindly provide exactly 3 ingredients."
@@ -31,6 +65,13 @@ def generate_recipe():
         {', '.join(ingredients)}. \
         Ensure the recipe ingredients appear at the top, \
         followed by the step-by-step instructions."
+
+    if selected_cuisine:
+        prompt += f" The cuisine should be {selected_cuisine}."
+
+    if selected_restrictions and len(selected_restrictions) > 0:
+        prompt += f" The recipe should have the following restrictions: {', '.join(selected_restrictions)}."
+
     messages = [{'role': 'user', 'content': prompt}]
 
     # Engage ChatGPT to receive the desired recipe

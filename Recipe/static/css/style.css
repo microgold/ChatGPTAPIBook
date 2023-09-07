@@ -8,7 +8,7 @@ body {
 
 /* Centered Form Styling */
 form {
-  max-width: 300px;
+  max-width: 400px;
   margin: 50px auto;
   padding: 20px;
   background-color: #fff;
@@ -44,4 +44,69 @@ input[type="submit"] {
 
 input[type="submit"]:hover {
   background-color: #0056b3;
+}
+
+input[type="checkbox"] {
+  margin-right: 5px;
+}
+
+/* Style for the dropdown menu */
+select#cuisine {
+  width: 200px;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  font-size: 16px;
+  margin-bottom: 10px;
+}
+
+/* Style for the dropdown placeholder text */
+select#cuisine::placeholder {
+  color: #999;
+}
+
+/* Style for the dropdown options */
+select#cuisine option {
+  font-size: 16px;
+}
+
+.subheading {
+  display: block;
+  margin-top: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* Additional styling for checkboxes */
+label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+/* Styling for a container to group checkboxes */
+.checkbox-container {
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 5px;
+  width: 400px;
+  margin-bottom: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  max-width: 400px; /* Adjust the width as needed */
+}
+
+/* Style for the individual checkbox groups */
+.checkbox-group {
+  flex: 0 0 calc(50% - 5px); /* 50% width with a little margin in between */
+  margin-bottom: 10px; /* Space between groups */
+  display: flex;
+  align-items: center;
+}
+
+/* Styling for labels associated with checkboxes */
+label.checkbox-label {
+  display: inline-block;
+  margin-right: 10px;
 }

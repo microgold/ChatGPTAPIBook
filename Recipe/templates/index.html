@@ -28,6 +28,32 @@
         placeholder="Ingredient 3"
         required
       />
+
+      <label class="subheading" for="cuisine">Choose a cuisine:</label>
+      <select name="cuisine" id="cuisine">
+        {% for cuisine in cuisines %}
+        <option value="{{ cuisine|lower|replace(' ', '_') }}">
+          {{ cuisine }}
+        </option>
+        {% endfor %}
+      </select>
+
+      <label class="subheading" for="restrictions">Dietary Restrictions:</label>
+      <div class="checkbox-container">
+        {% for restriction in dietary_restrictions %}
+        <div class="checkbox-group" name="restrictions">
+          <label class="checkbox-label">
+            <input
+              type="checkbox"
+              name="restrictions"
+              value="{{ restriction|lower|replace(' ', '_') }}"
+            />
+            {{ restriction }}
+          </label>
+        </div>
+        {% endfor %}
+      </div>
+
       <input type="submit" value="Generate Recipe" />
     </form>
   </body>
