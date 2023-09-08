@@ -62,7 +62,7 @@ def generate_recipe():
 
     # Craft a conversational prompt for ChatGPT, specifying our needs
     prompt = f"Craft a recipe in HTML using \
-        {', '.join(ingredients)}. \
+        {', '.join(ingredients)}. It's okay to use some other necessary ingredients. \
         Ensure the recipe ingredients appear at the top, \
         followed by the step-by-step instructions."
 
@@ -71,6 +71,8 @@ def generate_recipe():
 
     if selected_restrictions and len(selected_restrictions) > 0:
         prompt += f" The recipe should have the following restrictions: {', '.join(selected_restrictions)}."
+
+    print('prompt: ' + prompt)
 
     messages = [{'role': 'user', 'content': prompt}]
 
