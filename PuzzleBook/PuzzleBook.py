@@ -18,6 +18,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from tkinter import messagebox
 
 pil_image_path = "c:\\temp\\temp__puzzlebook_image.png"
+puzzle_image_path = 'c:\\temp\\alphabet_grid.png'
 
 puzzle_board_creator = PuzzleBoardCreator()
 
@@ -38,10 +39,12 @@ def set_normal_cursor():
     submit_btn.config(cursor="")
 
 
-def create_pdf(dialog_text):
-    if not dialog_text:
+def create_pdf(puzzle_word_text):
+    if not puzzle_word_text:
         messagebox.showerror("Error", "Please generate the dialog first!")
         return
+
+    theme = combo1.get()
 
     # 3. Create a PDF with both the extracted image and some text
     doc = SimpleDocTemplate("output.pdf", pagesize=letter)
@@ -49,16 +52,23 @@ def create_pdf(dialog_text):
     # Create the contents list for the PDF
     contents = []
 
+    styles = getSampleStyleSheet()
+    headline_style = styles['Heading1']
+    headline = Paragraph(theme.capitalize(), headline_style)
+    contents.append(headline)
+
     # Add the extracted image
     # Adjust width and height as needed
-    img = ReportLabImage(pil_image_path, width=2.5*inch, height=2.5*inch)
-    contents.append(img)
+    img1 = ReportLabImage(pil_image_path, width=2.5*inch, height=2.5*inch)
+    contents.append(img1)
+    img2 = ReportLabImage(puzzle_image_path, width=5*inch, height=5*inch)
+    contents.append(img2)
 
     # Add some text
-    dialog_text = '<br/>' + dialog_text
-    dialog_text = dialog_text.replace('\n', '<br/><br/>')
+    puzzle_word_text = '<br/>' + puzzle_word_text
+    puzzle_word_text = puzzle_word_text.replace('\n', '<br/><br/>')
     styles = getSampleStyleSheet()
-    paragraph = Paragraph(dialog_text, styles['Normal'])
+    paragraph = Paragraph(puzzle_word_text, styles['Normal'])
     contents.append(paragraph)
 
     # Build the PDF
@@ -147,10 +157,14 @@ def create_grid_from_letters(letters):
             d.text(position, letter, font=fnt, fill=(0, 0, 0))
 
     # Save the image
-    img.save('c:\\temp\\alphabet_grid.png')
+    img.save(puzzle_image_path)
 
 
 def clean_words(words):
+
+    # remove any words that repeat
+    words = list(dict.fromkeys(words))
+
     # choose only words that are 10 characters or less when punctuation is stripped
     # and spaces removed
     clean_words = []
@@ -174,7 +188,7 @@ def submit():
     set_wait_cursor()
     theme = combo1.get()
 
-    prompt = f"Create a comma delimited list of 20 words having to do with the theme {theme}. None of the words in the list should repeat\n"
+    prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
     messages = [{'role': 'user', 'content': prompt}]
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -231,11 +245,6 @@ combo1.set("Holidays")
 submit_btn = ttk.Button(app, text="Submit", command=submit)
 submit_btn.grid(column=1, row=3, padx=10, pady=20)
 
-# Button to submit the details
-create_pdf_btn = ttk.Button(
-    app, text="Create Pdf", command=lambda: create_pdf(result_text.get(1.0, tk.END)))
-create_pdf_btn.grid(column=2, row=3, padx=10, pady=20)
-
 # make it scrollable
 # Create a Scrollbar widget
 scrollbar = tk.Scrollbar(app)
@@ -261,6 +270,10 @@ label_key_title.grid(column=5, row=6, padx=10, pady=5)
 label_puzzle_words = ttk.Label(app, text="")
 label_puzzle_words.grid(column=5, row=7, padx=10, pady=10)
 
+# Button to submit the details
+create_pdf_btn = ttk.Button(
+    app, text="Create Pdf", command=lambda: create_pdf(label_puzzle_words['text']))
+create_pdf_btn.grid(column=2, row=3, padx=10, pady=20)
 
 scrollbar.config(command=result_text.yview)
 
