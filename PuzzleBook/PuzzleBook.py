@@ -106,11 +106,23 @@ def display_image_from_url(image_holder, url):
     return image
 
 
-def CreateGridFromLetters(letters):
+def display_image_from_path(image_holder, path):
+    # Fetch the image from the file
+
+    # open image from path 'c:\\temp\\alphabet_grid.png'
+    image = Image.open(path)
+
+    photo = ImageTk.PhotoImage(image)
+
+    update_label_with_new_image(image_holder, photo)
+    return image
+
+
+def create_grid_from_letters(letters):
     # Set image size, background color, and font size
     img_size = (650, 650)
     background_color = (255, 255, 255)  # white
-    font_size = 50
+    font_size = 30
 
     # Create a new image with white background
     img = Image.new('RGB', img_size, background_color)
@@ -119,17 +131,18 @@ def CreateGridFromLetters(letters):
     # Load a truetype or OpenType font file, and set the font size
     try:
         fnt = ImageFont.truetype(
-            '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', font_size)
+            'C:\\Windows\\Fonts\\Cour.ttf', font_size)
     except IOError:
+        print('Font not found, using default font.')
         fnt = ImageFont.load_default()
 
     # Generate the 13 by 13 grid of letters
 
     for i in range(13):
         for j in range(13):
-            letter = letters[(i * 13 + j) % 26]  # Cycle through the alphabet
+            letter = letters[i][j]  # Cycle through the alphabet
             # Adjust position for each letter
-            position = (j * (font_size + 10) + 10, i * (font_size + 10) + 10)
+            position = (j * (font_size + 10) + 75, i * (font_size + 10) + 75)
             # Draw letter with black color
             d.text(position, letter, font=fnt, fill=(0, 0, 0))
 
@@ -161,7 +174,7 @@ def submit():
     set_wait_cursor()
     theme = combo1.get()
 
-    prompt = f"Create a comma delimited list of 50 words having to do with the theme {theme}.\n"
+    prompt = f"Create a comma delimited list of 20 words having to do with the theme {theme}. None of the words in the list should repeat\n"
     messages = [{'role': 'user', 'content': prompt}]
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -179,8 +192,13 @@ def submit():
     words = chatGPTAnswer.split(',')
     words = clean_words(words)  # pick out a list of 10 viable words
     print(words)
-    board = puzzle_board_creator.create_word_search(words)
+    # create word search puzzle array from words
+    (board, words_to_remove) = puzzle_board_creator.create_word_search(words)
+    # remove words that could not be placed
+    words = [word for word in words if word not in words_to_remove]
+    # show the board on the console
     puzzle_board_creator.display_board(board)
+    label_puzzle_words.config(text=', '.join(words))
     # make result_text scrollable
 
     result_text.config(state="normal")
@@ -189,7 +207,10 @@ def submit():
     result_text.config(state="disabled")
 
     image_url = generate_image(theme)
+    create_grid_from_letters(board)
     display_image_from_url(image_holder, image_url)
+    display_image_from_path(puzzle_holder, 'c:\\temp\\alphabet_grid.png')
+    puzzle_holder.config(width=600, height=600)
     set_normal_cursor()
 
 
@@ -231,7 +252,14 @@ image_holder = tk.Label(app)
 image_holder.grid(column=0, row=5, columnspan=4, padx=10, pady=10)
 
 puzzle_holder = tk.Label(app)
-puzzle_holder.grid(column=0, row=5, columnspan=4, padx=10, pady=10)
+puzzle_holder.grid(column=5, row=0, rowspan=6,  padx=2,
+                   pady=2)
+
+label_key_title = ttk.Label(app, text="Puzzle Words")
+label_key_title.grid(column=5, row=6, padx=10, pady=5)
+
+label_puzzle_words = ttk.Label(app, text="")
+label_puzzle_words.grid(column=5, row=7, padx=10, pady=10)
 
 
 scrollbar.config(command=result_text.yview)

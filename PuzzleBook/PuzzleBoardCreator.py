@@ -26,7 +26,7 @@ class PuzzleBoardCreator:
             count += 1
             if count > 200000:
                 print("count exceeded {count}".format(count=count))
-                break
+                return placed
 
             if orientation == 0:  # Horizontal
                 row = random.randint(0, len(board)-1)
@@ -87,6 +87,7 @@ class PuzzleBoardCreator:
                                                    range(col, col+len(word)))):
                         board[r][c] = word[i]
                     placed = True
+        return placed
 
     def fill_empty(self, board):
         for row in range(len(board)):
@@ -95,14 +96,17 @@ class PuzzleBoardCreator:
                     board[row][col] = random.choice(string.ascii_uppercase)
 
     def create_word_search(self, words):
+        words_to_remove = []
         board = [['-' for _ in range(13)] for _ in range(13)]
 
         for word in words:
-            self.place_word(board, word)
+            placed = self.place_word(board, word)
+            if (not placed):
+                words_to_remove.append(word)
 
         self.fill_empty(board)
 
-        return board
+        return (board, words_to_remove)
 
     def display_board(self, board):
         for row in board:
