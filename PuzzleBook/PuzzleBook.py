@@ -116,22 +116,9 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                 # ... (other styling)
             ]))
 
-            # header_table = Table(header_data, colWidths=[
-            #                      (4*72) + margin_offset, 2*72])
-            # header_table.setStyle(TableStyle([
-            #     ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-            #     # Adds space below the header
-            #     ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
-            #     # Add any other styling you need
-            # ]))
-
             contents.append(header_table)
             # Add some space between header and content
             contents.append(Spacer(1, .5*72))
-
-            # headline = Paragraph(
-            #     puzzle_descriptions[i].capitalize(), headline_style)
-            # contents.append(headline)
 
             img1 = ReportLabImage(
                 theme_images_list[i], width=1.5*inch, height=1.5*inch)
