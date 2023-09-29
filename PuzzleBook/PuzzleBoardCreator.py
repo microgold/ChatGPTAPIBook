@@ -10,8 +10,6 @@ class PuzzleBoardCreator:
         word = word.upper().replace(" ", "")
         # remove any punctuation
         word = word.translate(str.maketrans('', '', string.punctuation))
-        if (len(word) > 10):
-            word = word[:10]
         return word
 
     def place_word(self, board, word):
