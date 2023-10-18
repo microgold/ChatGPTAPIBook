@@ -13,6 +13,7 @@ import openai
 import requests
 from PIL import Image, ImageTk, ImageDraw, ImageFont
 from PuzzleBoardCreator import PuzzleBoardCreator
+import json
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
@@ -71,7 +72,68 @@ def dynamic_header_and_footer(canvas, doc):
     footer(canvas, doc, footer_content)
 
 
+def create_dedication_page(contents, styles, dedictation_phrase):
+    print('calling create_dedication_page')
+    # Dynamically determine or generate header_content and footer_content here
+    # center dedication phrase in the center of the page
+    contents.append(Spacer(1, .5*72))
+    contents.append(Paragraph(dedictation_phrase, styles['Italic']))
+    contents.append(PageBreak())
+
+
+def create_title_page(contents, styles, title, subtitle, author):
+    print('calling create_title_page')
+    # Dynamically determine or generate header_content and footer_content here
+    # center dedication phrase in the center of the page
+    contents.append(Spacer(1, .5*72))
+    contents.append(Paragraph(title, styles['Heading1']))
+    contents.append(Spacer(1, .25*72))
+    contents.append(Paragraph(subtitle, styles['Heading2']))
+    contents.append(Spacer(1, .5*72))
+    contents.append(Paragraph(author, styles['Heading3']))
+    contents.append(PageBreak())
+
+
+def create_publishing_page(contents, styles, title, subtitle, author, publisher, year, isbn):
+    print('calling create_title_page')
+    # Dynamically determine or generate header_content and footer_content here
+    # center dedication phrase in the center of the page
+    contents.append(Spacer(1, .5*72))
+    contents.append(Paragraph(title, styles['Heading1']))
+    contents.append(Spacer(1, .25*72))
+    contents.append(Paragraph(subtitle, styles['Heading2']))
+    contents.append(Spacer(1, .5*72))
+    contents.append(Paragraph(author, styles['Heading3']))
+    contents.append(Spacer(1, .5*72))
+    contents.append(Paragraph(f"ISBN {isbn}", styles['Normal']))
+    contents.append(Spacer(1, .25*72))
+    contents.append(Paragraph(publisher, styles['Normal']))
+    contents.append(Spacer(1, .25*72))
+    contents.append(Paragraph(f"© {year} {author}", styles['Normal']))
+    contents.append(PageBreak())
+
+
 def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle_descriptions):
+
+    # Open and read the JSON file
+    with open('puzzlebook.config', 'r') as file:
+        data = json.load(file)
+
+    # Accessing each item
+    title = data["title"]
+    subtitle = data["subtitle"]
+    author = data["author"]
+    isbn = data["isbn"]
+    year = data["year"]
+    publisher = data["publisher"]
+
+    # Printing the values
+    print(f"Title: {title}")
+    print(f"Subtitle: {subtitle}")
+    print(f"Author: {author}")
+    print(f"ISBN: {isbn}")
+    print(f"Year: {year}")
+    print(f"Publisher: {publisher}")
 
     try:
         print("creating book...")
@@ -96,9 +158,20 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
         styles = getSampleStyleSheet()
         contents = []
 
+        print("creating title page")
+        create_title_page(
+            contents, styles, title, subtitle, author)
+        print("creating publishing page")
+        create_publishing_page(contents, styles, title,
+                               subtitle, author,
+                               publisher, year, isbn)
+        print("creating dedication page")
+        create_dedication_page(
+            contents, styles, "This book is dedicated to my wife and son.")
+
         headline_style = styles['Heading1']
         normal_style = styles['Normal']
-
+        print(f"creating puzzle pages ({len(puzzle_words_list)} pages.)")
         for i in range(len(puzzle_words_list)):
             header_data = [[Paragraph(f"{puzzle_descriptions[i]}", styles['Normal']),
                             Paragraph(f"{i + 1}", styles['Normal'])]]
@@ -198,7 +271,7 @@ def generate_image(theme):
         model="image-alpha-001",
         prompt=f"cartoon image of {theme}",
         n=1,  # Number of images to generate
-        size="256x256",  # Size of the generated image
+        size="1024x1024",  # Size of the generated image
         response_format="url"  # Format in which the image will be received
     )
 
@@ -221,7 +294,7 @@ def display_image_from_url(image_holder, url):
 
     # Open and display the image using PIL and tkinter
     image = Image.open(image_data)
-    image.resize((200, 200), Image.ANTIALIAS)
+    # image.resize((200, 200), Image.ANTIALIAS)
 
     # Save the image as a PNG
     image.save(pil_image_path, "PNG")
@@ -300,6 +373,26 @@ def clean_words(words):
     return clean_words
 
 
+def clean_topics(words):
+
+    # remove any words that repeat
+    words = list(dict.fromkeys(words))
+
+    # choose only words that are 10 characters or less when punctuation is stripped
+    # and spaces removed
+    clean_words = []
+    for word in words:
+        word = word.upper().replace(" ", "")
+        # remove any punctuation
+        word = word.translate(str.maketrans('', '', string.punctuation))
+        if (len(word) <= 10):
+            clean_words.append(word)
+
+    # sort the words by size with largest first
+    clean_words.sort(key=len, reverse=True)
+    return clean_words
+
+
 def copy_image(src_path, suffix):
     try:
         dst_path = src_path+'_'+suffix
@@ -323,7 +416,14 @@ def batch_submit():
     set_wait_cursor()
     theme = combo1.get()
 
-    prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
+    with open('puzzlebook.config', 'r') as file:
+        data = json.load(file)
+
+    numberOfPuzzles = data["numberOfPuzzles"]
+    print("Number of puzzles: " + str(numberOfPuzzles))
+
+   # prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
+    prompt = f"Create a comma delimited list of {numberOfPuzzles} costumes people may dress up for on around the holiday of {theme}. None of the costumes in the list should repeat. Do not number the list, please separate each costume by a comma. Do not use any trademark characters.\n"
     messages = [{'role': 'user', 'content': prompt}]
     response = openai.ChatCompletion.create(
         model="gpt-3.5-turbo",
@@ -342,7 +442,7 @@ def batch_submit():
     # split the comma delimited list of words into a list
     topics = chatGPTAnswer.split(',')
 
-    topics = clean_words(topics)  # pick out a list of 10 viable words
+    topics = clean_topics(topics)  # pick out a list of 10 viable words
     print(topics)
 
     # now create a list of words from each of those words
@@ -351,7 +451,7 @@ def batch_submit():
         # save puzzle description
         puzzle_descriptions.append(topic)
 
-        prompt = f"Create a comma delimited list of 40 words having to do with the theme {topic}. None of the words in the list should repeat\n"
+        prompt = f"Create a comma delimited list of 40 words having to do with the theme {topic}. None of the words in the list should repeat. Do not use any trademark names.\n"
         messages = [{'role': 'user', 'content': prompt}]
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
@@ -462,9 +562,9 @@ app.title("Word Puzzle Book")
 label1 = ttk.Label(app, text="Select a Word Puzzle Theme:")
 label1.grid(column=0, row=0, padx=10, pady=5)
 combo1 = ttk.Combobox(
-    app, values=["Holidays", "Science", "Travel", "AI", "Cars", "Food", "Entertainment", "Sports", "Space", "Work", "School", "Animals", "Nature", "Art", "Music", "Movies", "Books", "History", "Math", "Geography", "Weather", "Fashion", "Health", "Family", "Money", "Politics", "Religion", "Technology", "Games", "Business", "Crime", "Law", "Medicine", "Psychology", "Language", "Culture", "Relationships", "Social Media", "News", "Shopping", "Transportation", "Architecture", "Design", "Gardening", "Hobbies", "Humor", "Literature", "Philosophy", "Photography", "Writing", "Other"])
+    app, values=["Halloween", "Holidays", "Science", "Travel", "AI", "Cars", "Food", "Entertainment", "Sports", "Space", "Work", "School", "Animals", "Nature", "Art", "Music", "Movies", "Books", "History", "Math", "Geography", "Weather", "Fashion", "Health", "Family", "Money", "Politics", "Religion", "Technology", "Games", "Business", "Crime", "Law", "Medicine", "Psychology", "Language", "Culture", "Relationships", "Social Media", "News", "Shopping", "Transportation", "Architecture", "Design", "Gardening", "Hobbies", "Humor", "Literature", "Philosophy", "Photography", "Writing", "Other"])
 combo1.grid(column=1, row=0, padx=10, pady=5)
-combo1.set("Holidays")
+combo1.set("Halloween")
 
 
 # Button to submit the details
