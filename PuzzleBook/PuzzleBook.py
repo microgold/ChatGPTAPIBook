@@ -14,13 +14,22 @@ import requests
 from PIL import Image, ImageTk, ImageDraw, ImageFont
 from PuzzleBoardCreator import PuzzleBoardCreator
 import json
+import inflect
 
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Frame, PageTemplate
-
-from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.colors import black, white
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from tkinter import messagebox
+
+p = inflect.engine()
+
+
+def pluralize(topic):
+    plural_topic = p.plural(topic)
+    return plural_topic
+
 
 pil_image_path = "c:\\temp\\temp__puzzlebook_image.png"
 puzzle_image_path = 'c:\\temp\\alphabet_grid.png'
@@ -28,6 +37,10 @@ puzzle_image_path = 'c:\\temp\\alphabet_grid.png'
 puzzle_board_creator = PuzzleBoardCreator()
 
 generated_image = None
+
+left_margin_left_side = .75*inch
+left_margin_right_side = 1*inch
+left_margin = left_margin_left_side
 
 load_dotenv()
 key = os.getenv("OPENAI_API_KEY")
@@ -76,7 +89,7 @@ def create_dedication_page(contents, styles, dedictation_phrase):
     print('calling create_dedication_page')
     # Dynamically determine or generate header_content and footer_content here
     # center dedication phrase in the center of the page
-    contents.append(Spacer(1, .5*72))
+    contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(dedictation_phrase, styles['Italic']))
     contents.append(PageBreak())
 
@@ -85,11 +98,11 @@ def create_title_page(contents, styles, title, subtitle, author):
     print('calling create_title_page')
     # Dynamically determine or generate header_content and footer_content here
     # center dedication phrase in the center of the page
-    contents.append(Spacer(1, .5*72))
+    contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(title, styles['Heading1']))
-    contents.append(Spacer(1, .25*72))
+    contents.append(Spacer(left_margin, .25*72))
     contents.append(Paragraph(subtitle, styles['Heading2']))
-    contents.append(Spacer(1, .5*72))
+    contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(author, styles['Heading3']))
     contents.append(PageBreak())
 
@@ -98,22 +111,22 @@ def create_publishing_page(contents, styles, title, subtitle, author, publisher,
     print('calling create_title_page')
     # Dynamically determine or generate header_content and footer_content here
     # center dedication phrase in the center of the page
-    contents.append(Spacer(1, .5*72))
+    contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(title, styles['Heading1']))
-    contents.append(Spacer(1, .25*72))
+    contents.append(Spacer(left_margin, .25*72))
     contents.append(Paragraph(subtitle, styles['Heading2']))
-    contents.append(Spacer(1, .5*72))
+    contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(author, styles['Heading3']))
-    contents.append(Spacer(1, .5*72))
+    contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(f"ISBN {isbn}", styles['Normal']))
-    contents.append(Spacer(1, .25*72))
+    contents.append(Spacer(left_margin, .25*72))
     contents.append(Paragraph(publisher, styles['Normal']))
-    contents.append(Spacer(1, .25*72))
+    contents.append(Spacer(left_margin, .25*72))
     contents.append(Paragraph(f"© {year} {author}", styles['Normal']))
     contents.append(PageBreak())
 
 
-def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle_descriptions):
+def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle_descriptions, puzzle_fun_facts):
 
     # Open and read the JSON file
     with open('puzzlebook.config', 'r') as file:
@@ -147,8 +160,10 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                 "Error", "All input lists must be of the same length!")
             return
 
-        custom_page_size = (6*72, 9*72)
-        custom_margins = 0.5*72
+        gutter_width = 0.5 * inch
+
+        custom_page_size = (6*inch, 9*inch)
+        custom_margins = 0.5*inch
         doc = SimpleDocTemplate("output.pdf",
                                 pagesize=custom_page_size,
                                 topMargin=custom_margins,
@@ -178,16 +193,44 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
             # Adjust colWidths as needed
             # Create a table for the header with spacer on the left, topic in the middle, and page number on the right
-            margin_offset = 1*72
-            header_data = [['', Paragraph(f"Topic: {puzzle_descriptions[i]}", styles['Normal']),
-                            Paragraph(f"Page {i + 1}", styles['Normal'])]]
+            margin_offset = 1*inch if (i % 2 == 0) else 1.25*inch
+            puzzle_offset = 0*inch if (i % 2 == 0) else .25*inch
 
+            header_data = None
+
+            if (i % 2 == 1):
+                header_data = [[Paragraph(f"{puzzle_descriptions[i]}", styles['Normal']),
+                                Paragraph(f"Page {i + 1}", styles['Normal'])]]
+                gutter_width = 0.5 * inch
+            else:
+                header_data = [[Paragraph(f"Page {i + 1}", styles['Normal']),
+                                Paragraph(f"{puzzle_descriptions[i]}", styles['Normal'])]]
+                gutter_width = 0
+
+            # Adjust column widths for the 6" x 9" size
             header_table = Table(header_data, colWidths=[
-                                 margin_offset, 4*72, 2*72])
-            header_table.setStyle(TableStyle([
-                ('ALIGN', (1, 0), (2, 0), 'RIGHT'),
-                # ... (other styling)
-            ]))
+                                 4.5*inch - gutter_width, 1*inch])
+            header_style = TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), white),
+                # ('BOX', (0, 0), (-1, 0), 1, black),
+                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (0, 0), 14),
+                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
+                ('FONTSIZE', (1, 0), (1, 0), 12),
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                ('LEFTPADDING', (0, 0), (0, 0), 20),
+                ('RIGHTPADDING', (1, 0), (1, 0), 20),
+            ])
+
+            header_table.setStyle(header_style)
+            #   header_table = Table(header_data, colWidths=[
+            #                        margin_offset, 4*72, 2*72])
+            # header_table.setStyle(TableStyle([
+            #     ('ALIGN', (1, 0), (2, 0), 'RIGHT'),
+            #     # ... (other styling)
+            # ]))
 
             contents.append(header_table)
             # Add some space between header and content
@@ -195,20 +238,57 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
             img1 = ReportLabImage(
                 theme_images_list[i], width=1.5*inch, height=1.5*inch)
-            contents.append(img1)
+          #  contents.append(img1)
+
+            data = [['', img1, Paragraph(
+                puzzle_fun_facts[i], styles['Normal'])]]
+
+            image_table_style = TableStyle([
+                # Adjusts vertical alignment of the second column
+                ('VALIGN', (1, 0), (1, 0), 'TOP'),
+            ])
+
+            image_table = Table(data, colWidths=[
+                puzzle_offset, 2*inch, 2.5*inch])
+
+            image_table.setStyle(image_table_style)
+
+            contents.append(image_table)
 
             contents.append(Spacer(1, .25*72))
 
-            img2 = ReportLabImage(
+            puzzle_image = ReportLabImage(
                 puzzle_images_list[i], width=4*inch, height=4*inch)
-            contents.append(img2)
 
-            contents.append(Spacer(1, .25*72))
+            puzzle_row = [['', puzzle_image]]
+
+            puzzle_table = Table(puzzle_row, colWidths=[
+                                 puzzle_offset, 4*72])
+            puzzle_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (1, 0), 'LEFT'),
+            ]))
+
+            contents.append(puzzle_table)
+
+            contents.append(Spacer(left_margin, .25*72))
 
             puzzle_word_text = '<br/>' + puzzle_words_list[i]
             puzzle_word_text = puzzle_word_text.replace('\n', '<br/><br/>')
-            paragraph = Paragraph(puzzle_word_text, normal_style)
-            contents.append(paragraph)
+
+            custom_style = ParagraphStyle(
+                "CustomStyle",
+                parent=styles["Normal"],
+                leftIndent=inch*.5,  # Indent by 36 points (0.5 inch)
+            )
+
+            paragraph = Paragraph(puzzle_word_text, custom_style)
+            word_find_row = [['', paragraph]]
+            word_find_table = Table(word_find_row, colWidths=[
+                puzzle_offset, 4*inch])
+            word_find_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+            ]))
+            contents.append(word_find_table)
 
             if i < len(puzzle_words_list) - 1:
                 contents.append(PageBreak())
@@ -269,9 +349,9 @@ def create_pdf(puzzle_word_text):
 def generate_image(theme):
     response = openai.Image.create(
         model="image-alpha-001",
-        prompt=f"cartoon image of {theme}",
+        prompt=f"cartoon image of {theme} that must fit in 512x512 dimensions",
         n=1,  # Number of images to generate
-        size="1024x1024",  # Size of the generated image
+        size="512x512",  # Size of the generated image
         response_format="url"  # Format in which the image will be received
     )
 
@@ -319,9 +399,9 @@ def display_image_from_path(image_holder, path):
 
 def create_grid_of_letters_image(letters):
     # Set image size, background color, and font size
-    img_size = (530, 530)
+    img_size = (1200, 1200)
     background_color = (255, 255, 255)  # white
-    font_size = 30
+    font_size = 72
 
     # Create a new image with white background
     img = Image.new('RGB', img_size, background_color)
@@ -341,12 +421,16 @@ def create_grid_of_letters_image(letters):
         for j in range(13):
             letter = letters[i][j]  # Cycle through the alphabet
             # Adjust position for each letter
-            position = (j * (font_size + 10) + 10, i * (font_size + 10) + 10)
+            position = (j * (font_size + 20) + 20, i * (font_size + 20) + 20)
             # Draw letter with black color
             d.text(position, letter, font=fnt, fill=(0, 0, 0))
 
     # Save the image
     img.save(puzzle_image_path)
+
+
+def remove_numbers(s):
+    return ''.join([char for char in s if not char.isdigit()])
 
 
 def clean_words(words):
@@ -361,6 +445,7 @@ def clean_words(words):
         word = word.upper().replace(" ", "")
         # remove any punctuation
         word = word.translate(str.maketrans('', '', string.punctuation))
+        word = remove_numbers(word)  # remove any numbers as well
         if (len(word) <= 10):
             clean_words.append(word)
 
@@ -412,6 +497,7 @@ def batch_submit():
     theme_images_list = []
     puzzle_images_list = []
     puzzle_descriptions = []
+    puzzle_fun_facts = []
 
     set_wait_cursor()
     theme = combo1.get()
@@ -467,6 +553,7 @@ def batch_submit():
         # retrieve the list of words created by ChatGPT
         chatGPTAnswer = response["choices"][0]["message"]["content"]
         print(chatGPTAnswer)
+
         # split the comma delimited list of words into a list
         words = chatGPTAnswer.split(',')
         words = clean_words(words)  # pick out a list of 10 viable words
@@ -502,8 +589,27 @@ def batch_submit():
         puzzle_holder.config(width=600, height=600)
         set_normal_cursor()
 
+        # come up with a fun filled fact
+        promptForFact = f"Come up with one fun filled fact about {pluralize(topic)}).\n"
+        messages = [{'role': 'user', 'content': promptForFact}]
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=messages,
+            temperature=0.8,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.6,
+        )
+
+        print(promptForFact)
+
+        # retrieve the list of words created by ChatGPT
+        fact = response["choices"][0]["message"]["content"]
+        print(fact)
+        puzzle_fun_facts.append(fact)
+
     create_book(puzzle_words_list, theme_images_list,
-                puzzle_images_list, puzzle_descriptions)
+                puzzle_images_list, puzzle_descriptions, puzzle_fun_facts)
 
 
 def submit():
