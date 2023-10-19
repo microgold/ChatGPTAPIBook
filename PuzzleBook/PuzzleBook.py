@@ -1,5 +1,7 @@
 from datetime import datetime
+import time
 import shutil
+from tkinter import filedialog
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Spacer, Table, TableStyle
 from io import BytesIO
@@ -468,10 +470,11 @@ def clean_topics(words):
     # and spaces removed
     clean_words = []
     for word in words:
-        word = word.upper().replace(" ", "")
+        #     word = word.upper().replace(" ", "")
         # remove any punctuation
         word = word.translate(str.maketrans('', '', string.punctuation))
-        if (len(word) <= 10):
+        word = word.strip()
+        if (len(word) <= 30):
             clean_words.append(word)
 
     # sort the words by size with largest first
@@ -479,9 +482,9 @@ def clean_topics(words):
     return clean_words
 
 
-def copy_image(src_path, prefix, puzzle_part):
+def copy_image(base_file_path, src_path, prefix, puzzle_part):
     try:
-        dst_path = f"{prefix}_{puzzle_part}_src_path.png"
+        dst_path = f"{base_file_path}{prefix}_{puzzle_part}_src_path.png"
         shutil.copy2(src_path, dst_path)
         print(f'Successfully copied {src_path} to {dst_path}')
         return dst_path
@@ -502,8 +505,63 @@ def copy_image(src_path, prefix, puzzle_part):
 def create_file_from_wordlist(filename, words, backup_folder):
     # Open the file in write mode and write each string to the file
     with open(f"{backup_folder}\\{filename}.txt", 'w') as file:
+        count = 0
+        length = len(words)
         for word in words:
-            file.write(word + '\n\n')  # Add a newline after each string
+            if count == length - 1:
+                file.write(word)
+            else:
+                file.write(word + '|')  # Add a newline after each string
+            count = count + 1
+
+
+def read_file_from_backup(filename):
+    # Open the file in read mode and read each string from the file
+    with open(filename, 'r') as file:
+        # read the entire file into a string
+        file_contents = file.read()
+        # split the string into an array of strings
+        words = file_contents.split('|')
+        return words
+
+# Reconstruct from backup
+
+
+def reconstruct_book_from_backup(backup_folder):
+    # read in each array of items from the back up folder
+    puzzle_descriptions_list = read_file_from_backup(
+        f"{backup_folder}\\puzzle_descriptions.txt")
+    puzzle_facts_list = read_file_from_backup(
+        f"{backup_folder}\\puzzle_fun_facts.txt")
+    puzzle_words_list = read_file_from_backup(
+        f"{backup_folder}\\puzzle_words.txt")
+
+    # read in each image from the back up folder into a list
+    theme_images_list = []
+    puzzle_images_list = []
+    # use each word list to form the filepath to the image (include backup_folder)
+    for word in puzzle_descriptions_list:
+        theme_images_list.append(f"{backup_folder}\\{word}_theme_src_path.png")
+        puzzle_images_list.append(
+            f"{backup_folder}\\{word}_puzzle_src_path.png")
+
+    print(puzzle_words_list)
+    print(theme_images_list)
+    print(puzzle_images_list)
+    print(puzzle_descriptions_list)
+    print(puzzle_facts_list)
+
+    print("reconstructing book...")
+    create_book(puzzle_words_list, theme_images_list,
+                puzzle_images_list, puzzle_descriptions_list, puzzle_facts_list)
+
+
+def construct_book_from_backup():
+    # prompt user for the backup folder
+    backup_folder = ''
+    backup_folder = filedialog.askdirectory(
+        initialdir="c:\\temp", title="Select backup folder of book")
+    reconstruct_book_from_backup(backup_folder)
 
 
 def backupcontent(theme, header_images, puzzle_images, puzzle_words, puzzle_descriptions, puzzle_fun_facts):
@@ -554,6 +612,7 @@ def batch_submit():
         data = json.load(file)
 
     numberOfPuzzles = data["numberOfPuzzles"]
+    base_file_path = data["tempFilePath"]
     print("Number of puzzles: " + str(numberOfPuzzles))
 
    # prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
@@ -585,6 +644,7 @@ def batch_submit():
 
     # now create a list of words from each of those words
     for topic in topics:
+        time.sleep(1)
         print(topic)
         # save puzzle description
         puzzle_descriptions.append(topic)
@@ -601,6 +661,7 @@ def batch_submit():
         )
 
         print(prompt)
+        time.sleep(1)
 
         # retrieve the list of words created by ChatGPT
         chatGPTAnswer = response["choices"][0]["message"]["content"]
@@ -631,11 +692,13 @@ def batch_submit():
         # creates a grid of letters into an image for the puzzle
         create_grid_of_letters_image(board)
         display_image_from_url(image_holder, image_url)
-        dest_theme_image_path = copy_image(pil_image_path,  topic, "theme")
+        dest_theme_image_path = copy_image(
+            base_file_path, pil_image_path,  topic, "theme")
         theme_images_list.append(dest_theme_image_path)
 
         display_image_from_path(puzzle_holder, puzzle_image_path)
-        dest_puzzle_image_path = copy_image(puzzle_image_path, topic, "puzzle")
+        dest_puzzle_image_path = copy_image(
+            base_file_path, puzzle_image_path, topic, "puzzle")
         puzzle_images_list.append(dest_puzzle_image_path)
 
         puzzle_holder.config(width=600, height=600)
@@ -654,6 +717,7 @@ def batch_submit():
         )
 
         print(promptForFact)
+        time.sleep(1)
 
         # retrieve the list of words created by ChatGPT
         fact = response["choices"][0]["message"]["content"]
@@ -733,6 +797,12 @@ submit_btn.grid(column=0, row=3, padx=10, pady=20)
 # Button to submit the details
 create_book_btn = ttk.Button(app, text="Create Book", command=batch_submit)
 create_book_btn.grid(column=2, row=3, padx=10, pady=20)
+
+# reconstruct book button
+reconstruct_book_btn = ttk.Button(
+    app, text="Reconstruct Book", command=construct_book_from_backup)
+reconstruct_book_btn.grid(column=3, row=3, padx=10, pady=20)
+
 
 # make it scrollable
 # Create a Scrollbar widget
