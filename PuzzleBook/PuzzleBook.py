@@ -1,3 +1,4 @@
+from datetime import datetime
 import shutil
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Spacer, Table, TableStyle
@@ -478,9 +479,9 @@ def clean_topics(words):
     return clean_words
 
 
-def copy_image(src_path, suffix):
+def copy_image(src_path, prefix, puzzle_part):
     try:
-        dst_path = src_path+'_'+suffix
+        dst_path = f"{prefix}_{puzzle_part}_src_path.png"
         shutil.copy2(src_path, dst_path)
         print(f'Successfully copied {src_path} to {dst_path}')
         return dst_path
@@ -490,6 +491,53 @@ def copy_image(src_path, suffix):
         print(f'Permission denied. Unable to write to {dst_path}')
     except Exception as e:
         print(f'An unexpected error occurred: {e}')
+
+    # Backup the puzzle image
+    # the header images
+    # the puzzle words string array
+    # to a new folder with timestamp under the temp directory
+    # and the fun facts
+
+
+def create_file_from_wordlist(filename, words, backup_folder):
+    # Open the file in write mode and write each string to the file
+    with open(f"{backup_folder}\\{filename}.txt", 'w') as file:
+        for word in words:
+            file.write(word + '\n\n')  # Add a newline after each string
+
+
+def backupcontent(theme, header_images, puzzle_images, puzzle_words, puzzle_descriptions, puzzle_fun_facts):
+    # create a new folder that has the theme and the timestamp
+    print("backing up content...")
+    # copy the header images to the folder
+
+    # copy the puzzle image to the folder
+    # copy the puzzle words to the folder
+    # copy the puzzle descriptions to the folder
+    # copy the puzzle fun facts to the folder
+    # Create a new folder that has the theme and the timestamp
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    backup_folder = f"c:\\temp\\{theme}_{timestamp}"
+    os.makedirs(backup_folder, exist_ok=True)
+
+    # Copy the header images to the folder
+    for image in header_images:
+        shutil.copy(image, backup_folder)
+
+    # Copy the puzzle image to the folder
+    for image in puzzle_images:
+        shutil.copy(image, backup_folder)
+
+    # Copy the puzzle words, descriptions, and fun facts to the folder
+    # Assuming these are text files, if not, adjust accordingly
+    create_file_from_wordlist(
+        "puzzle_words", puzzle_words, backup_folder)
+    create_file_from_wordlist(
+        "puzzle_descriptions", puzzle_descriptions, backup_folder)
+    create_file_from_wordlist("puzzle_fun_facts",
+                              puzzle_fun_facts, backup_folder)
+
+    print("content backed up successfully!")
 
 
 def batch_submit():
@@ -528,7 +576,11 @@ def batch_submit():
     # split the comma delimited list of words into a list
     topics = chatGPTAnswer.split(',')
 
-    topics = clean_topics(topics)  # pick out a list of 10 viable words
+    # sometimes chatgpt generates more topics than you asked for
+    if len(topics) > numberOfPuzzles:
+        topics = topics[:numberOfPuzzles]
+
+    topics = clean_topics(topics)  # clean up the topics list.
     print(topics)
 
     # now create a list of words from each of those words
@@ -579,11 +631,11 @@ def batch_submit():
         # creates a grid of letters into an image for the puzzle
         create_grid_of_letters_image(board)
         display_image_from_url(image_holder, image_url)
-        dest_theme_image_path = copy_image(pil_image_path, topic)
+        dest_theme_image_path = copy_image(pil_image_path,  topic, "theme")
         theme_images_list.append(dest_theme_image_path)
 
         display_image_from_path(puzzle_holder, puzzle_image_path)
-        dest_puzzle_image_path = copy_image(puzzle_image_path, topic)
+        dest_puzzle_image_path = copy_image(puzzle_image_path, topic, "puzzle")
         puzzle_images_list.append(dest_puzzle_image_path)
 
         puzzle_holder.config(width=600, height=600)
@@ -607,7 +659,8 @@ def batch_submit():
         fact = response["choices"][0]["message"]["content"]
         print(fact)
         puzzle_fun_facts.append(fact)
-
+    backupcontent(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
+                  puzzle_descriptions, puzzle_fun_facts)
     create_book(puzzle_words_list, theme_images_list,
                 puzzle_images_list, puzzle_descriptions, puzzle_fun_facts)
 

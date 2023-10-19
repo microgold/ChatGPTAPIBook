@@ -169,3 +169,5 @@ cython_debug/
 markua_guid.md
 **/Scripts/
 *.cfg
+PuzzleBook/PuzzleBook - Shortcut.lnk
+.vscode/**/*
