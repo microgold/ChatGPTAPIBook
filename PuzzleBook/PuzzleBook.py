@@ -51,13 +51,13 @@ openai.api_key = key
 
 
 def set_wait_cursor():
-    submit_btn.config(cursor="watch")
+    create_book_btn.config(cursor="watch")
     app.update_idletasks()  # Force an immediate update of the window
     time.sleep(2)  # Simulate some long operation
 
 
 def set_normal_cursor():
-    submit_btn.config(cursor="")
+    create_book_btn.config(cursor="")
 
 
 def header(canvas, doc, content):
@@ -142,6 +142,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
     isbn = data["isbn"]
     year = data["year"]
     publisher = data["publisher"]
+    outputFilePath = data["outputFilePath"]
 
     # Printing the values
     print(f"Title: {title}")
@@ -167,7 +168,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
         custom_page_size = (6*inch, 9*inch)
         custom_margins = 0.5*inch
-        doc = SimpleDocTemplate("output.pdf",
+        doc = SimpleDocTemplate(outputFilePath,
                                 pagesize=custom_page_size,
                                 topMargin=custom_margins,
                                 bottomMargin=custom_margins,
@@ -350,13 +351,17 @@ def create_pdf(puzzle_word_text):
 
 
 def generate_image(theme):
-    response = openai.Image.create(
-        model="image-alpha-001",
-        prompt=f"cartoon image of {theme} that must fit in 512x512 dimensions",
-        n=1,  # Number of images to generate
-        size="512x512",  # Size of the generated image
-        response_format="url"  # Format in which the image will be received
-    )
+    try:
+        response = openai.Image.create(
+            model="image-alpha-001",
+            prompt=f"cartoon image of {theme} that must fit in 512x512 dimensions",
+            n=1,  # Number of images to generate
+            size="512x512",  # Size of the generated image
+            response_format="url"  # Format in which the image will be received
+        )
+    except Exception as e:
+        messagebox.showerror("Error", f"Error generating image: {e}")
+        return None
 
     image_url = response.data[0]["url"]
     print(image_url)
@@ -608,26 +613,29 @@ def batch_submit():
     set_wait_cursor()
     theme = combo1.get()
 
+    GPT_Model = "gpt-4-0613"
+    # GPT_Model = "gpt-3.5-turbo"
+
     with open('puzzlebook.config', 'r') as file:
         data = json.load(file)
 
     numberOfPuzzles = data["numberOfPuzzles"]
     base_file_path = data["tempFilePath"]
+    dummy_puzzle_book_image = data["dummyImageUrl"]
     print("Number of puzzles: " + str(numberOfPuzzles))
 
-   # prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
-    prompt = f"Create a comma delimited list of {numberOfPuzzles} costumes people may dress up for on around the holiday of {theme}. None of the costumes in the list should repeat. Do not number the list, please separate each costume by a comma. Do not use any trademark characters.\n"
+    prompt = f"Create a comma delimited list of {numberOfPuzzles} costumes people may dress up for on around the holiday of {theme}. None of the costumes in the list should repeat. Do not number the list, please separate each costume by a comma. Do not use any trademark characters.Remember Comma delimited, NOT a numbered list."
+    print(prompt)
+
     messages = [{'role': 'user', 'content': prompt}]
     response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
+        model=GPT_Model,
         messages=messages,
         temperature=0.8,
         top_p=1.0,
         frequency_penalty=0.0,
         presence_penalty=0.6,
     )
-
-    print(prompt)
 
     # retrieve the list of words created by ChatGPT
     chatGPTAnswer = response["choices"][0]["message"]["content"]
@@ -643,29 +651,36 @@ def batch_submit():
     print(topics)
 
     # now create a list of words from each of those words
+
     for topic in topics:
         time.sleep(1)
         print(topic)
-        # save puzzle description
-        puzzle_descriptions.append(topic)
 
         prompt = f"Create a comma delimited list of 40 words having to do with the theme {topic}. None of the words in the list should repeat. Do not use any trademark names.\n"
         messages = [{'role': 'user', 'content': prompt}]
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0.8,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.6,
-        )
+        try:
+            response = openai.ChatCompletion.create(
+                model=GPT_Model,
+                messages=messages,
+                temperature=0.8,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.6,
+            )
 
-        print(prompt)
-        time.sleep(1)
+            print(prompt)
+            time.sleep(1)
 
-        # retrieve the list of words created by ChatGPT
-        chatGPTAnswer = response["choices"][0]["message"]["content"]
-        print(chatGPTAnswer)
+            # retrieve the list of words created by ChatGPT
+            chatGPTAnswer = response["choices"][0]["message"]["content"]
+            print(chatGPTAnswer)
+        except Exception as e:
+            messagebox.showerror(
+                "Error", f"Error generating puzzle clues for {topic}, skipping topic: {e}")
+            continue
+
+        # save puzzle description
+        puzzle_descriptions.append(topic)
 
         # split the comma delimited list of words into a list
         words = chatGPTAnswer.split(',')
@@ -687,8 +702,19 @@ def batch_submit():
         result_text.insert(tk.END, chatGPTAnswer)
         result_text.config(state="disabled")
 
-        # generates a cartoon image of the theme
-        image_url = generate_image(topic)
+        # generates a cartoon image of the theme,
+        # if it errors out keep trying
+        # image_url = dummy_puzzle_book_image
+        image_url = None
+        count = 0
+        while image_url is None and count < 3:
+            image_url = generate_image(topic)
+            count += 1
+            time.sleep(5)
+        # if after 3 tries we still couldn't generate an image, use the dummy image
+        if image_url is None:
+            image_url = dummy_puzzle_book_image
+
         # creates a grid of letters into an image for the puzzle
         create_grid_of_letters_image(board)
         display_image_from_url(image_holder, image_url)
@@ -705,22 +731,26 @@ def batch_submit():
         set_normal_cursor()
 
         # come up with a fun filled fact
-        promptForFact = f"Come up with one fun filled fact about {pluralize(topic)}).\n"
-        messages = [{'role': 'user', 'content': promptForFact}]
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0.8,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.6,
-        )
 
-        print(promptForFact)
-        time.sleep(1)
+        try:
+            promptForFact = f"Come up with one fun filled fact about {pluralize(topic)}).\n"
+            messages = [{'role': 'user', 'content': promptForFact}]
+            response = openai.ChatCompletion.create(
+                model=GPT_Model,
+                messages=messages,
+                temperature=0.8,
+                top_p=1.0,
+                frequency_penalty=0.0,
+                presence_penalty=0.6,
+            )
 
-        # retrieve the list of words created by ChatGPT
-        fact = response["choices"][0]["message"]["content"]
+            print(promptForFact)
+            time.sleep(1)
+
+            # retrieve the list of words created by ChatGPT
+            fact = response["choices"][0]["message"]["content"]
+        except Exception as e:
+            fact = f"No fun fact was generated for the {topic} puzzle."
         print(fact)
         puzzle_fun_facts.append(fact)
     backupcontent(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
@@ -790,18 +820,18 @@ combo1.grid(column=1, row=0, padx=10, pady=5)
 combo1.set("Halloween")
 
 
-# Button to submit the details
-submit_btn = ttk.Button(app, text="Submit", command=submit)
-submit_btn.grid(column=0, row=3, padx=10, pady=20)
+# # Button to submit the details
+# submit_btn = ttk.Button(app, text="Submit", command=submit)
+# submit_btn.grid(column=0, row=3, padx=10, pady=20)
 
 # Button to submit the details
 create_book_btn = ttk.Button(app, text="Create Book", command=batch_submit)
-create_book_btn.grid(column=2, row=3, padx=10, pady=20)
+create_book_btn.grid(column=0, row=3, padx=10, pady=20)
 
 # reconstruct book button
 reconstruct_book_btn = ttk.Button(
     app, text="Reconstruct Book", command=construct_book_from_backup)
-reconstruct_book_btn.grid(column=3, row=3, padx=10, pady=20)
+reconstruct_book_btn.grid(column=1, row=3, padx=10, pady=20)
 
 
 # make it scrollable
@@ -830,9 +860,9 @@ label_puzzle_words = ttk.Label(app, text="")
 label_puzzle_words.grid(column=5, row=7, padx=10, pady=10)
 
 # Button to submit the details
-create_pdf_btn = ttk.Button(
-    app, text="Create Pdf", command=lambda: create_pdf(label_puzzle_words['text']))
-create_pdf_btn.grid(column=1, row=3, padx=10, pady=20)
+# create_pdf_btn = ttk.Button(
+#     app, text="Create Pdf", command=lambda: create_pdf(label_puzzle_words['text']))
+# create_pdf_btn.grid(column=1, row=3, padx=10, pady=20)
 
 scrollbar.config(command=result_text.yview)
 
