@@ -267,7 +267,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             puzzle_row = [['', puzzle_image]]
 
             puzzle_table = Table(puzzle_row, colWidths=[
-                                 puzzle_offset, 4*72])
+                                 puzzle_offset, 4*inch])
             puzzle_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (1, 0), 'LEFT'),
             ]))
@@ -282,17 +282,20 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             custom_style = ParagraphStyle(
                 "CustomStyle",
                 parent=styles["Normal"],
-                leftIndent=inch*.5,  # Indent by 36 points (0.5 inch)
+                # Indent by 36 points (0.5 inch)
+                leftIndent=inch*.55 if i % 2 == 0 else inch*.70,
+                rightIndent=inch*.25,
             )
 
             paragraph = Paragraph(puzzle_word_text, custom_style)
-            word_find_row = [['', paragraph]]
-            word_find_table = Table(word_find_row, colWidths=[
-                puzzle_offset, 4*inch])
-            word_find_table.setStyle(TableStyle([
-                ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-            ]))
-            contents.append(word_find_table)
+ #           word_find_row = [['', paragraph]]
+ #           word_find_table = Table(word_find_row, colWidths=[
+ #               puzzle_offset, 4*inch])
+ #           word_find_table.setStyle(TableStyle([
+ #               ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+ #           ]))
+ #           contents.append(word_find_table)
+            contents.append(paragraph)
 
             if i < len(puzzle_words_list) - 1:
                 contents.append(PageBreak())
@@ -520,6 +523,17 @@ def create_file_from_wordlist(filename, words, backup_folder):
             count = count + 1
 
 
+def add_word_to_wordlist(filename, word, backup_folder, is_first_word=False):
+    # Open the file in write mode and write each string to the file
+    # open file to append word
+
+    with open(f"{backup_folder}\\{filename}.txt", 'a') as file:
+        if (is_first_word):
+            file.write(word)
+        else:
+            file.write('|' + word)
+
+
 def read_file_from_backup(filename):
     # Open the file in read mode and read each string from the file
     with open(filename, 'r') as file:
@@ -569,7 +583,7 @@ def construct_book_from_backup():
     reconstruct_book_from_backup(backup_folder)
 
 
-def backupcontent(theme, header_images, puzzle_images, puzzle_words, puzzle_descriptions, puzzle_fun_facts):
+def backup_content(theme, header_images, puzzle_images, puzzle_words, puzzle_descriptions, puzzle_fun_facts):
     # create a new folder that has the theme and the timestamp
     print("backing up content...")
     # copy the header images to the folder
@@ -603,6 +617,14 @@ def backupcontent(theme, header_images, puzzle_images, puzzle_words, puzzle_desc
     print("content backed up successfully!")
 
 
+def check_if_topic_already_created(base_file_path, topic):
+    # just see if the file exists in the base_file_path
+    full_path = f"{base_file_path}{topic}_puzzle_src_path.png"
+    if os.path.exists(full_path):
+        return True
+    return False
+
+
 def batch_submit():
     puzzle_words_list = []
     theme_images_list = []
@@ -613,35 +635,21 @@ def batch_submit():
     set_wait_cursor()
     theme = combo1.get()
 
-    GPT_Model = "gpt-4-0613"
-    # GPT_Model = "gpt-3.5-turbo"
+    # GPT_Model = "gpt-4-0613"
+    GPT_Model = "gpt-3.5-turbo"
 
-    with open('puzzlebook.config', 'r') as file:
-        data = json.load(file)
+    data = get_configuration()
 
     numberOfPuzzles = data["numberOfPuzzles"]
     base_file_path = data["tempFilePath"]
     dummy_puzzle_book_image = data["dummyImageUrl"]
     print("Number of puzzles: " + str(numberOfPuzzles))
 
-    prompt = f"Create a comma delimited list of {numberOfPuzzles} costumes people may dress up for on around the holiday of {theme}. None of the costumes in the list should repeat. Do not number the list, please separate each costume by a comma. Do not use any trademark characters.Remember Comma delimited, NOT a numbered list."
-    print(prompt)
-
-    messages = [{'role': 'user', 'content': prompt}]
-    response = openai.ChatCompletion.create(
-        model=GPT_Model,
-        messages=messages,
-        temperature=0.8,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.6,
-    )
-
-    # retrieve the list of words created by ChatGPT
-    chatGPTAnswer = response["choices"][0]["message"]["content"]
-    print(chatGPTAnswer)
-    # split the comma delimited list of words into a list
-    topics = chatGPTAnswer.split(',')
+    topics = []
+    if (generate_topics_chk_var.get() == 1):
+        topics = get_topics_from_file()
+    else:
+        topics = generate_topics(theme, GPT_Model, numberOfPuzzles)
 
     # sometimes chatgpt generates more topics than you asked for
     if len(topics) > numberOfPuzzles:
@@ -653,6 +661,10 @@ def batch_submit():
     # now create a list of words from each of those words
 
     for topic in topics:
+        # if (check_if_topic_already_created(base_file_path, topic)):
+        #     print(f"Skipping topic {topic} because it already exists.")
+        #     continue
+
         time.sleep(1)
         print(topic)
 
@@ -705,13 +717,7 @@ def batch_submit():
         # generates a cartoon image of the theme,
         # if it errors out keep trying
         # image_url = dummy_puzzle_book_image
-        image_url = None
-        count = 0
-        while image_url is None and count < 3:
-            image_url = generate_image(topic)
-            count += 1
-            time.sleep(5)
-        # if after 3 tries we still couldn't generate an image, use the dummy image
+        image_url = generate_image(topic)
         if image_url is None:
             image_url = dummy_puzzle_book_image
 
@@ -731,32 +737,95 @@ def batch_submit():
         set_normal_cursor()
 
         # come up with a fun filled fact
+        create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic)
 
-        try:
-            promptForFact = f"Come up with one fun filled fact about {pluralize(topic)}).\n"
-            messages = [{'role': 'user', 'content': promptForFact}]
-            response = openai.ChatCompletion.create(
-                model=GPT_Model,
-                messages=messages,
-                temperature=0.8,
-                top_p=1.0,
-                frequency_penalty=0.0,
-                presence_penalty=0.6,
-            )
+        # Copy the puzzle words, descriptions, and fun facts to the folder
+        # Assuming these are text files, if not, adjust accordingly
+        backup_text_lists(puzzle_words_list, puzzle_descriptions,
+                          puzzle_fun_facts, base_file_path)
 
-            print(promptForFact)
-            time.sleep(1)
-
-            # retrieve the list of words created by ChatGPT
-            fact = response["choices"][0]["message"]["content"]
-        except Exception as e:
-            fact = f"No fun fact was generated for the {topic} puzzle."
-        print(fact)
-        puzzle_fun_facts.append(fact)
-    backupcontent(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
-                  puzzle_descriptions, puzzle_fun_facts)
+        # sleep for 15 seconds to avoid hitting the API rate limit
+        time.sleep(15)
+    backup_content(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
+                   puzzle_descriptions, puzzle_fun_facts)
     create_book(puzzle_words_list, theme_images_list,
                 puzzle_images_list, puzzle_descriptions, puzzle_fun_facts)
+
+
+def backup_text_lists(puzzle_words_list, puzzle_descriptions, puzzle_fun_facts, base_file_path):
+    backup_folder = base_file_path
+    add_word_to_wordlist(
+        "puzzle_words", puzzle_words_list[-1], backup_folder, len(puzzle_words_list) == 1)
+    add_word_to_wordlist(
+        "puzzle_descriptions", puzzle_descriptions[-1], backup_folder, len(puzzle_descriptions) == 1)
+    add_word_to_wordlist("puzzle_fun_facts",
+                         puzzle_fun_facts[-1], backup_folder, len(puzzle_fun_facts) == 1)
+
+
+def create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic):
+    try:
+        promptForFact = f"Come up with one fun filled fact about {pluralize(topic)}).\n"
+        messages = [{'role': 'user', 'content': promptForFact}]
+        response = openai.ChatCompletion.create(
+            model=GPT_Model,
+            messages=messages,
+            temperature=0.8,
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.6,
+        )
+
+        print(promptForFact)
+        time.sleep(1)
+
+        # retrieve the list of words created by ChatGPT
+        fact = response["choices"][0]["message"]["content"]
+    except Exception as e:
+        fact = f"No fun fact was generated for the {topic} puzzle."
+    print(fact)
+    puzzle_fun_facts.append(fact)
+
+
+def get_configuration():
+    with open('puzzlebook.config', 'r') as file:
+        data = json.load(file)
+    return data
+
+
+def generate_topics(theme, GPT_Model, numberOfPuzzles):
+    prompt = f"Create a comma delimited list of {numberOfPuzzles} costumes people may dress up for on around the holiday of {theme}. None of the costumes in the list should repeat. Do not number the list, please separate each costume by a comma. Do not use any trademark characters.Remember Comma delimited, NOT a numbered list."
+    print(prompt)
+
+    messages = [{'role': 'user', 'content': prompt}]
+    response = openai.ChatCompletion.create(
+        model=GPT_Model,
+        messages=messages,
+        temperature=0.8,
+        top_p=1.0,
+        frequency_penalty=0.0,
+        presence_penalty=0.6,
+    )
+
+    # retrieve the list of words created by ChatGPT
+    chatGPTAnswer = response["choices"][0]["message"]["content"]
+    print(chatGPTAnswer)
+    # split the comma delimited list of words into a list
+    topics = chatGPTAnswer.split(',')
+    return topics
+
+
+def get_topics_from_file():
+    # use pathToTopicsFile to read in the topics
+    config = get_configuration()
+    pathToTopics = config["pathToTopics"]
+    # return the list of topics
+    topics = []
+    with open(pathToTopics, 'r') as file:
+        # read the entire file into a string
+        file_contents = file.read()
+        # split the string into an array of strings
+        topics = file_contents.split(',')
+        return topics
 
 
 def submit():
@@ -827,6 +896,11 @@ combo1.set("Halloween")
 # Button to submit the details
 create_book_btn = ttk.Button(app, text="Create Book", command=batch_submit)
 create_book_btn.grid(column=0, row=3, padx=10, pady=20)
+
+generate_topics_chk_var = tk.IntVar(value=1)
+generate_topics_chk = ttk.Checkbutton(
+    app, text="read topics from file", variable=generate_topics_chk_var)
+generate_topics_chk.grid(column=1, row=1, padx=10, pady=20)
 
 # reconstruct book button
 reconstruct_book_btn = ttk.Button(
