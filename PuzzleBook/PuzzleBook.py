@@ -22,7 +22,7 @@ import inflect
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Frame, PageTemplate
-from reportlab.lib.colors import black, white
+from reportlab.lib.colors import black, white, gray
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from tkinter import messagebox
 
@@ -165,6 +165,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             return
 
         gutter_width = 0.5 * inch
+        right_gutter_width = gutter_width
 
         custom_page_size = (6*inch, 9*inch)
         custom_margins = 0.5*inch
@@ -201,31 +202,37 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             puzzle_offset = 0*inch if (i % 2 == 0) else .25*inch
 
             header_data = None
+            style_right = ParagraphStyle(
+                name='RightAlign', parent=styles['Normal'], alignment=2)
 
             if (i % 2 == 1):
-                header_data = [[Paragraph(f"{puzzle_descriptions[i]}", styles['Normal']),
-                                Paragraph(f"Page {i + 1}", styles['Normal'])]]
+                header_data = [[Paragraph(f"{puzzle_descriptions[i]}", styles['Normal']), "",
+                                Paragraph(f"Page {i + 1}", style_right)]]
                 gutter_width = 0.5 * inch
+                right_gutter_width = 0
             else:
-                header_data = [[Paragraph(f"Page {i + 1}", styles['Normal']),
-                                Paragraph(f"{puzzle_descriptions[i]}", styles['Normal'])]]
+                header_data = [[Paragraph(f"Page {i + 1}", styles['Normal']), "",
+                                Paragraph(f"{puzzle_descriptions[i]}", style_right)]]
                 gutter_width = 0
+                right_gutter_width = 0.5 * inch
 
             # Adjust column widths for the 6" x 9" size
-            header_table = Table(header_data, colWidths=[
-                                 4.5*inch - gutter_width, 1*inch])
+
+            # Define the column widths
+            col_widths = [2 * inch, 2 * inch, 2 * inch]  # Adjust as needed
+
+            # Create the header table
+            header_table = Table(header_data, colWidths=col_widths)
+
+            # Apply a style to the header table
             header_style = TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), white),
-                # ('BOX', (0, 0), (-1, 0), 1, black),
-                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
-                ('FONTNAME', (0, 0), (0, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (0, 0), 14),
-                ('FONTNAME', (1, 0), (1, 0), 'Helvetica'),
-                ('FONTSIZE', (1, 0), (1, 0), 12),
                 ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-                ('LEFTPADDING', (0, 0), (0, 0), 20),
-                ('RIGHTPADDING', (1, 0), (1, 0), 20),
+                ('ALIGN', (2, 0), (2, 0), 'RIGHT'),
+                ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+                # ('GRID', (0, 0), (-1, -1), 1, black),
+                ('LEFTPADDING', (0, 0), (0, 0), .35 * inch + gutter_width),
+                ('RIGHTPADDING', (2, 0), (2, 0), .35 * inch + right_gutter_width),
             ])
 
             header_table.setStyle(header_style)
