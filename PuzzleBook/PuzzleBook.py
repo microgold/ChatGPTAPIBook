@@ -129,7 +129,7 @@ def create_publishing_page(contents, styles, title, subtitle, author, publisher,
     contents.append(PageBreak())
 
 
-def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle_descriptions, puzzle_fun_facts):
+def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle_descriptions, puzzle_fun_facts, puzzle_topics_list):
 
     # Open and read the JSON file
     with open('puzzlebook.config', 'r') as file:
@@ -176,6 +176,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                                 leftMargin=custom_margins,
                                 rightMargin=custom_margins)
         styles = getSampleStyleSheet()
+        styles['Normal'].fontName = 'Helvetica'
         contents = []
 
         print("creating title page")
@@ -193,7 +194,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
         normal_style = styles['Normal']
         print(f"creating puzzle pages ({len(puzzle_words_list)} pages.)")
         for i in range(len(puzzle_words_list)):
-            header_data = [[Paragraph(f"{puzzle_descriptions[i]}", styles['Normal']),
+            header_data = [[Paragraph(f"{puzzle_topics_list[i]}", styles['Normal']),
                             Paragraph(f"{i + 1}", styles['Normal'])]]
 
             # Adjust colWidths as needed
@@ -206,13 +207,13 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                 name='RightAlign', parent=styles['Normal'], alignment=2)
 
             if (i % 2 == 1):
-                header_data = [[Paragraph(f"{puzzle_descriptions[i]}", styles['Normal']), "",
+                header_data = [[Paragraph(f"{puzzle_topics_list[i]}", styles['Normal']), "",
                                 Paragraph(f"Page {i + 1}", style_right)]]
                 gutter_width = 0.5 * inch
                 right_gutter_width = 0
             else:
                 header_data = [[Paragraph(f"Page {i + 1}", styles['Normal']), "",
-                                Paragraph(f"{puzzle_descriptions[i]}", style_right)]]
+                                Paragraph(f"{puzzle_topics_list[i]}", style_right)]]
                 gutter_width = 0
                 right_gutter_width = 0.5 * inch
 
@@ -561,6 +562,7 @@ def reconstruct_book_from_backup(backup_folder):
         f"{backup_folder}\\puzzle_fun_facts.txt")
     puzzle_words_list = read_file_from_backup(
         f"{backup_folder}\\puzzle_words.txt")
+    puzzle_topics_list = get_topics_from_file()
 
     # read in each image from the back up folder into a list
     theme_images_list = []
@@ -579,7 +581,7 @@ def reconstruct_book_from_backup(backup_folder):
 
     print("reconstructing book...")
     create_book(puzzle_words_list, theme_images_list,
-                puzzle_images_list, puzzle_descriptions_list, puzzle_facts_list)
+                puzzle_images_list, puzzle_descriptions_list, puzzle_facts_list, puzzle_topics_list)
 
 
 def construct_book_from_backup():
@@ -755,8 +757,9 @@ def batch_submit():
         time.sleep(15)
     backup_content(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
                    puzzle_descriptions, puzzle_fun_facts)
+
     create_book(puzzle_words_list, theme_images_list,
-                puzzle_images_list, puzzle_descriptions, puzzle_fun_facts)
+                puzzle_images_list, puzzle_descriptions, puzzle_fun_facts, topics)
 
 
 def backup_text_lists(puzzle_words_list, puzzle_descriptions, puzzle_fun_facts, base_file_path):
