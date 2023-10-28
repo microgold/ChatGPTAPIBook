@@ -169,10 +169,11 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
         custom_page_size = (6*inch, 9*inch)
         custom_margins = 0.5*inch
+        custom_vertical_margin = 0.25*inch
         doc = SimpleDocTemplate(outputFilePath,
                                 pagesize=custom_page_size,
-                                topMargin=custom_margins,
-                                bottomMargin=custom_margins,
+                                topMargin=custom_vertical_margin,
+                                bottomMargin=custom_vertical_margin,
                                 leftMargin=custom_margins,
                                 rightMargin=custom_margins)
         styles = getSampleStyleSheet()
@@ -246,7 +247,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
             contents.append(header_table)
             # Add some space between header and content
-            contents.append(Spacer(1, .5*72))
+            contents.append(Spacer(1, .4*72))
 
             img1 = ReportLabImage(
                 theme_images_list[i], width=1.5*inch, height=1.5*inch)
@@ -282,28 +283,62 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
             contents.append(puzzle_table)
 
-            contents.append(Spacer(left_margin, .25*72))
+            contents.append(Spacer(left_margin, .02*72))
 
             puzzle_word_text = '<br/>' + puzzle_words_list[i]
             puzzle_word_text = puzzle_word_text.replace('\n', '<br/><br/>')
 
             custom_style = ParagraphStyle(
                 "CustomStyle",
-                parent=styles["Normal"],
+                parent=styles["Normal"], fontsize=18,
                 # Indent by 36 points (0.5 inch)
                 leftIndent=inch*.55 if i % 2 == 0 else inch*.70,
                 rightIndent=inch*.25,
             )
 
-            paragraph = Paragraph(puzzle_word_text, custom_style)
- #           word_find_row = [['', paragraph]]
- #           word_find_table = Table(word_find_row, colWidths=[
- #               puzzle_offset, 4*inch])
- #           word_find_table.setStyle(TableStyle([
- #               ('ALIGN', (0, 0), (0, 0), 'LEFT'),
- #           ]))
- #           contents.append(word_find_table)
-            contents.append(paragraph)
+            # create a table that splits the list of puzzle_word_text into three columns
+            # the first column has 4 words, the second column has 3 words, and the third column has 3 words
+
+            # split the puzzle_word_text into a list of words
+            words = puzzle_word_text.split(",")
+            # split the list of words into three lists of words
+            words1 = words[:3]
+            words2 = words[3:6]
+            words3 = words[6:-1]
+
+            left_indent = inch*.55 if i % 2 == 0 else inch*.70
+            custom_word_style = ParagraphStyle(
+                "CustomStyle",
+                parent=styles["Normal"],
+                fontSize=12,
+                # Indent by 36 points (0.5 inch)
+                # leftIndent=left_indent,
+                # rightIndent=inch*.25,
+                wordWrap='LTR',
+            )
+
+            # create a paragraph for each list of words
+            # do list comprehension to create a list of paragraphs from words1
+            paragraphs1 = [Paragraph("")] + [Paragraph(word, custom_word_style)
+                                             for word in words1]
+            paragraphs2 = [Paragraph("")] + [Paragraph(word, custom_word_style)
+                                             for word in words2]
+            paragraphs3 = [Paragraph("")] + [Paragraph(word, custom_word_style)
+                                             for word in words3]
+            paragraph4 = [Paragraph("")] + [Paragraph(
+                words[-1], custom_word_style), Paragraph(""), Paragraph(""), Paragraph("")]
+
+            # create a table with three columns and 4 rows
+            word_find_row = [paragraphs1, paragraphs2, paragraphs3, paragraph4]
+            word_find_table = Table(word_find_row, colWidths=[inch * 1.65 + puzzle_offset,
+                                                              1.35*inch, 1.35*inch, 1.35 * inch]
+                                    )
+            word_find_table.setStyle(TableStyle([
+                ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
+
+            ]))
+
+            contents.append(word_find_table)
 
             if i < len(puzzle_words_list) - 1:
                 contents.append(PageBreak())
