@@ -259,6 +259,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             image_table_style = TableStyle([
                 # Adjusts vertical alignment of the second column
                 ('VALIGN', (1, 0), (1, 0), 'TOP'),
+                ('VALIGN', (2, 0), (2, 0), 'TOP'),
             ])
 
             image_table = Table(data, colWidths=[
@@ -283,7 +284,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
 
             contents.append(puzzle_table)
 
-            contents.append(Spacer(left_margin, .02*72))
+            contents.append(Spacer(left_margin + .15*inch, .02*72))
 
             puzzle_word_text = '<br/>' + puzzle_words_list[i]
             puzzle_word_text = puzzle_word_text.replace('\n', '<br/><br/>')
@@ -331,7 +332,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             # create a table with three columns and 4 rows
             word_find_row = [paragraphs1, paragraphs2, paragraphs3, paragraph4]
             word_find_table = Table(word_find_row, colWidths=[inch * 1.65 + puzzle_offset,
-                                                              1.35*inch, 1.35*inch, 1.35 * inch]
+                                                              1.45*inch, 1.45*inch, 1.45 * inch]
                                     )
             word_find_table.setStyle(TableStyle([
                 ('ALIGN', (0, 0), (-1, 0), 'LEFT'),
