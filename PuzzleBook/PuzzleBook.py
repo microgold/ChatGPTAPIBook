@@ -24,6 +24,7 @@ from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Frame, PageTemplate
 from reportlab.lib.colors import black, white, gray
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
 from tkinter import messagebox
 
 p = inflect.engine()
@@ -93,39 +94,54 @@ def create_dedication_page(contents, styles, dedictation_phrase):
     # Dynamically determine or generate header_content and footer_content here
     # center dedication phrase in the center of the page
     contents.append(Spacer(left_margin, .5*72))
-    contents.append(Paragraph(dedictation_phrase, styles['Italic']))
+    # Create a new style based on 'Normal' but with centered text
+    centered_italic_style = ParagraphStyle(
+        'centered', parent=styles['Italic'], alignment=TA_CENTER)
+    contents.append(Paragraph(dedictation_phrase, centered_italic_style))
     contents.append(PageBreak())
 
 
-def create_title_page(contents, styles, title, subtitle, author):
+def create_title_page(contents, styles, title, subtitle, author, coverImagePath):
     print('calling create_title_page')
     # Dynamically determine or generate header_content and footer_content here
     # center dedication phrase in the center of the page
     contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(title, styles['Heading1']))
-    contents.append(Spacer(left_margin, .25*72))
+    contents.append(Spacer(left_margin, .125*72))
     contents.append(Paragraph(subtitle, styles['Heading2']))
+    contents.append(Spacer(left_margin, .5*72))
+    coverImage = ReportLabImage(
+        coverImagePath, width=4.5*inch, height=4.5*inch)
+    contents.append(coverImage)
     contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(author, styles['Heading3']))
     contents.append(PageBreak())
 
 
-def create_publishing_page(contents, styles, title, subtitle, author, publisher, year, isbn):
-    print('calling create_title_page')
+def create_publishing_page(contents, styles, title, subtitle, author, publisher, year, isbn, coverImagePath):
+    print('calling create_publishing_page')
     # Dynamically determine or generate header_content and footer_content here
     # center dedication phrase in the center of the page
     contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(title, styles['Heading1']))
-    contents.append(Spacer(left_margin, .25*72))
+    contents.append(Spacer(left_margin, .125*72))
     contents.append(Paragraph(subtitle, styles['Heading2']))
+    contents.append(Spacer(left_margin, .5*72))
+    coverImage = ReportLabImage(
+        coverImagePath, width=1.5*inch, height=1.5*inch)
+    contents.append(coverImage)
     contents.append(Spacer(left_margin, .5*72))
     contents.append(Paragraph(author, styles['Heading3']))
     contents.append(Spacer(left_margin, .5*72))
-    contents.append(Paragraph(f"ISBN {isbn}", styles['Normal']))
+    # temporarily center the style
+    # Create a new style based on 'Normal' but with centered text
+    centered_style = ParagraphStyle(
+        'centered', parent=styles['Normal'], alignment=TA_CENTER)
+    contents.append(Paragraph(f"ISBN {isbn}", centered_style))
     contents.append(Spacer(left_margin, .25*72))
-    contents.append(Paragraph(publisher, styles['Normal']))
+    contents.append(Paragraph(publisher, centered_style))
     contents.append(Spacer(left_margin, .25*72))
-    contents.append(Paragraph(f"© {year} {author}", styles['Normal']))
+    contents.append(Paragraph(f"© {year} {author}", centered_style))
     contents.append(PageBreak())
 
 
@@ -143,6 +159,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
     year = data["year"]
     publisher = data["publisher"]
     outputFilePath = data["outputFilePath"]
+    coverImagePath = data["coverImagePath"]
 
     # Printing the values
     print(f"Title: {title}")
@@ -178,15 +195,23 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                                 rightMargin=custom_margins)
         styles = getSampleStyleSheet()
         styles['Normal'].fontName = 'Helvetica'
+        styles['Heading1'].fontSize = 24
+        styles['Heading2'].fontSize = 20
+        styles['Heading3'].fontSize = 18
+        styles['Heading1'].alignment = TA_CENTER
+        styles['Heading2'].alignment = TA_CENTER
+        styles['Heading3'].alignment = TA_CENTER
+        styles['Heading1'].spaceAfter = 0
+        styles['Heading2'].spaceBefore = 0
         contents = []
 
         print("creating title page")
         create_title_page(
-            contents, styles, title, subtitle, author)
+            contents, styles, title, subtitle, author, coverImagePath)
         print("creating publishing page")
         create_publishing_page(contents, styles, title,
                                subtitle, author,
-                               publisher, year, isbn)
+                               publisher, year, isbn, coverImagePath)
         print("creating dedication page")
         create_dedication_page(
             contents, styles, "This book is dedicated to my wife and son.")
