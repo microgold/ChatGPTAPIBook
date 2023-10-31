@@ -109,3 +109,18 @@ class PuzzleBoardCreator:
     def display_board(self, board):
         for row in board:
             print(' '.join(row))
+
+    def write_board_to_file(self, base_file_path, topic, board):
+        file_path = f"{base_file_path}{topic}_puzzle.txt"
+        with open(file_path, "w") as f:
+            for row in board:
+                f.write('|'.join(row) + "\n")
+        return file_path
+
+    def read_board_from_file(self, base_file_path, topic, board):
+        file_path = f"{base_file_path}{topic}_puzzle.txt"
+        with open(file_path, "r") as f:
+            for row in f:
+                row = row.rstrip('\n')  # Remove trailing newline character
+                board.append(row.split('|'))
+        return board

@@ -653,7 +653,7 @@ def construct_book_from_backup():
     reconstruct_book_from_backup(backup_folder)
 
 
-def backup_content(theme, header_images, puzzle_images, puzzle_words, puzzle_descriptions, puzzle_fun_facts):
+def backup_content(theme, header_images, puzzle_images, puzzle_words, puzzle_descriptions, puzzle_fun_facts, puzzle_text_images):
     # create a new folder that has the theme and the timestamp
     print("backing up content...")
     # copy the header images to the folder
@@ -674,6 +674,10 @@ def backup_content(theme, header_images, puzzle_images, puzzle_words, puzzle_des
     # Copy the puzzle image to the folder
     for image in puzzle_images:
         shutil.copy(image, backup_folder)
+
+    # Copy the puzzle text images to the folder
+    for text_image in puzzle_text_images:
+        shutil.copy(text_image, backup_folder)
 
     # Copy the puzzle words, descriptions, and fun facts to the folder
     # Assuming these are text files, if not, adjust accordingly
@@ -699,6 +703,7 @@ def batch_submit():
     puzzle_words_list = []
     theme_images_list = []
     puzzle_images_list = []
+    puzzle_text_images_list = []
     puzzle_descriptions = []
     puzzle_fun_facts = []
 
@@ -776,6 +781,12 @@ def batch_submit():
         puzzle_words_list.append(', '.join(words))
         # show the board on the console
         puzzle_board_creator.display_board(board)
+        # write the board to a file
+        text_board_path = puzzle_board_creator.write_board_to_file(
+            base_file_path, topic, board)
+        puzzle_text_images_list.append(text_board_path)
+        print('text board path: ' + text_board_path)
+
         label_puzzle_words.config(text=', '.join(words))
         # make result_text scrollable
 
@@ -809,15 +820,15 @@ def batch_submit():
         # come up with a fun filled fact
         create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic)
 
-        # Copy the puzzle words, descriptions, and fun facts to the folder
-        # Assuming these are text files, if not, adjust accordingly
-        backup_text_lists(puzzle_words_list, puzzle_descriptions,
-                          puzzle_fun_facts, base_file_path)
-
         # sleep for 15 seconds to avoid hitting the API rate limit
         time.sleep(15)
+    # Copy the puzzle words, descriptions, and fun facts to the folder
+    # Assuming these are text files, if not, adjust accordingly
+    backup_text_lists(puzzle_words_list, puzzle_descriptions,
+                      puzzle_fun_facts, base_file_path)
+
     backup_content(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
-                   puzzle_descriptions, puzzle_fun_facts)
+                   puzzle_descriptions, puzzle_fun_facts, puzzle_text_images_list)
 
     create_book(puzzle_words_list, theme_images_list,
                 puzzle_images_list, puzzle_descriptions, puzzle_fun_facts, topics)
