@@ -628,11 +628,27 @@ def reconstruct_book_from_backup(backup_folder):
     # read in each image from the back up folder into a list
     theme_images_list = []
     puzzle_images_list = []
-    # use each word list to form the filepath to the image (include backup_folder)
-    for word in puzzle_descriptions_list:
-        theme_images_list.append(f"{backup_folder}\\{word}_theme_src_path.png")
-        puzzle_images_list.append(
-            f"{backup_folder}\\{word}_puzzle_src_path.png")
+    if (reconstruct_puzzles_chk_var.get() == 1):
+        print("reconstructing puzzles from text files...")
+        for word in puzzle_descriptions_list:
+            theme_images_list.append(
+                f"{backup_folder}\\{word}_theme_src_path.png")
+            board = []
+            next_board = puzzle_board_creator.read_board_from_file(
+                f"{backup_folder}/", word, board)
+            # generate image from board
+            create_grid_of_letters_image(next_board)
+            dest_puzzle_image_path = copy_image(
+                f"{backup_folder}\\", puzzle_image_path, word, "puzzle")
+            puzzle_images_list.append(dest_puzzle_image_path)
+    else:
+        print("reconstructing puzzles from backup images...")
+        # use each word list to form the filepath to the image (include backup_folder)
+        for word in puzzle_descriptions_list:
+            theme_images_list.append(
+                f"{backup_folder}\\{word}_theme_src_path.png")
+            puzzle_images_list.append(
+                f"{backup_folder}\\{word}_puzzle_src_path.png")
 
     print(puzzle_words_list)
     print(theme_images_list)
@@ -719,6 +735,8 @@ def batch_submit():
     base_file_path = data["tempFilePath"]
     dummy_puzzle_book_image = data["dummyImageUrl"]
     print("Number of puzzles: " + str(numberOfPuzzles))
+    puzzle_clues_prompt = data["puzzleCluesPrompt"]
+    fun_filled_fact_prompt = data["funFilledFactPrompt"]
 
     topics = []
     if (generate_topics_chk_var.get() == 1):
@@ -743,7 +761,9 @@ def batch_submit():
         time.sleep(1)
         print(topic)
 
-        prompt = f"Create a comma delimited list of 40 words having to do with the theme {topic}. None of the words in the list should repeat. Do not use any trademark names.\n"
+        print(f"generating puzzle clues for {topic}...")
+
+        prompt = puzzle_clues_prompt.format(topic=topic)
         messages = [{'role': 'user', 'content': prompt}]
         try:
             response = openai.ChatCompletion.create(
@@ -818,7 +838,9 @@ def batch_submit():
         set_normal_cursor()
 
         # come up with a fun filled fact
-        create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic)
+        print(f"creating a fun filled fact about {topic}...")
+        create_fun_filled_fact(puzzle_fun_facts, GPT_Model,
+                               topic, fun_filled_fact_prompt)
 
         # sleep for 15 seconds to avoid hitting the API rate limit
         time.sleep(15)
@@ -844,9 +866,10 @@ def backup_text_lists(puzzle_words_list, puzzle_descriptions, puzzle_fun_facts, 
                          puzzle_fun_facts[-1], backup_folder, len(puzzle_fun_facts) == 1)
 
 
-def create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic):
+def create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic, fun_filled_fact_prompt):
     try:
-        promptForFact = f"Come up with one fun filled fact about {pluralize(topic)}).\n"
+        # f"Come up with one fun filled fact about {pluralize(topic)}).\n"
+        promptForFact = fun_filled_fact_prompt.format(topic=pluralize(topic))
         messages = [{'role': 'user', 'content': promptForFact}]
         response = openai.ChatCompletion.create(
             model=GPT_Model,
@@ -961,14 +984,18 @@ def submit():
 app = tk.Tk()
 app.title("Word Puzzle Book")
 
+data = get_configuration()
+
+preferred_theme = data["preferredTheme"]
+
 
 # Label and ComboBox for the first animal
 label1 = ttk.Label(app, text="Select a Word Puzzle Theme:")
 label1.grid(column=0, row=0, padx=10, pady=5)
 combo1 = ttk.Combobox(
-    app, values=["Halloween", "Holidays", "Science", "Travel", "AI", "Cars", "Food", "Entertainment", "Sports", "Space", "Work", "School", "Animals", "Nature", "Art", "Music", "Movies", "Books", "History", "Math", "Geography", "Weather", "Fashion", "Health", "Family", "Money", "Politics", "Religion", "Technology", "Games", "Business", "Crime", "Law", "Medicine", "Psychology", "Language", "Culture", "Relationships", "Social Media", "News", "Shopping", "Transportation", "Architecture", "Design", "Gardening", "Hobbies", "Humor", "Literature", "Philosophy", "Photography", "Writing", "Other"])
+    app, values=["Halloween", "Christmas", "Science", "Travel", "AI", "Cars", "Food", "Entertainment", "Sports", "Space", "Work", "School", "Animals", "Nature", "Art", "Music", "Movies", "Books", "History", "Math", "Geography", "Weather", "Fashion", "Health", "Family", "Money", "Politics", "Religion", "Technology", "Games", "Business", "Crime", "Law", "Medicine", "Psychology", "Language", "Culture", "Relationships", "Social Media", "News", "Shopping", "Transportation", "Architecture", "Design", "Gardening", "Hobbies", "Humor", "Literature", "Philosophy", "Photography", "Writing", "Other"])
 combo1.grid(column=1, row=0, padx=10, pady=5)
-combo1.set("Halloween")
+combo1.set(preferred_theme)
 
 
 # # Button to submit the details
@@ -979,10 +1006,17 @@ combo1.set("Halloween")
 create_book_btn = ttk.Button(app, text="Create Book", command=batch_submit)
 create_book_btn.grid(column=0, row=3, padx=10, pady=20)
 
+# generate topics from file checkbox
 generate_topics_chk_var = tk.IntVar(value=1)
 generate_topics_chk = ttk.Checkbutton(
     app, text="read topics from file", variable=generate_topics_chk_var)
 generate_topics_chk.grid(column=1, row=1, padx=10, pady=20)
+
+# reconstruct puzzles from text file checkbox
+reconstruct_puzzles_chk_var = tk.IntVar(value=0)
+reconstruct_puzzles_chk = ttk.Checkbutton(
+    app, text="reconstruct puzzles from backup", variable=reconstruct_puzzles_chk_var)
+reconstruct_puzzles_chk.grid(column=1, row=2, padx=10, pady=2)
 
 # reconstruct book button
 reconstruct_book_btn = ttk.Button(
