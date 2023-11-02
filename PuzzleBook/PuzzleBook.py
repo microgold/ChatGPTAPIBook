@@ -624,19 +624,21 @@ def reconstruct_book_from_backup(backup_folder):
     puzzle_descriptions_list = read_description_file_from_backup(
         f"{backup_folder}\\puzzle_descriptions.txt")
 
-    # puzzle_facts_list = read_file_from_backup(
-    #     f"{backup_folder}\\puzzle_fun_facts.txt")
-    # puzzle_words_list = read_file_from_backup(
-    #     f"{backup_folder}\\puzzle_words.txt")
-    puzzle_topics_list = get_topics_from_file()
-
     # read in each image from the back up folder into a list
     theme_images_list = []
     puzzle_images_list = []
     puzzle_words_list = []
     puzzle_facts_list = []
 
-    for word in puzzle_descriptions_list:
+    # strip spaces from topics, by mapping strip function
+    puzzle_topics_list = get_topics_from_file()
+    topics = list(map(str.strip, puzzle_topics_list))
+    # remove punctuation from all topics
+    topics = [topic.translate(str.maketrans(
+        '', '', string.punctuation)) for topic in topics]
+    puzzle_descriptions_list = topics
+    # for word in puzzle_descriptions_list:
+    for word in topics:
         next_puzzle_words = read_puzzle_words(word, backup_folder)
         puzzle_words_list.append(next_puzzle_words)
         next_fact = read_fun_filled_fact(word, backup_folder)
