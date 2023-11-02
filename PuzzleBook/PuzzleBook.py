@@ -176,6 +176,13 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                 "Error", "Please provide non-empty lists of puzzle words, theme images, puzzle images, and puzzle descriptions!")
             return
 
+        print(f"puzzle_words_list (length): {len(puzzle_words_list)}")
+        print(f"theme_images_list (length): {len(theme_images_list)}")
+        print(f"puzzle_images_list (length): {len(puzzle_images_list)}")
+        print(f"puzzle_descriptions (length): {len(puzzle_descriptions)}")
+        print(f"puzzle_topics_list (length): {len(puzzle_topics_list)}")
+        print(f"puzzle_fun_facts (length): {len(puzzle_fun_facts)}")
+
         if not len(puzzle_words_list) == len(theme_images_list) == len(puzzle_images_list) == len(puzzle_descriptions):
             messagebox.showerror(
                 "Error", "All input lists must be of the same length!")
@@ -425,8 +432,7 @@ def create_pdf(puzzle_word_text):
 def generate_image(theme):
     try:
         response = openai.Image.create(
-            model="image-alpha-001",
-            prompt=f"cartoon image of {theme} that must fit in 512x512 dimensions",
+            prompt=f"a(n) {theme}",
             n=1,  # Number of images to generate
             size="512x512",  # Size of the generated image
             response_format="url"  # Format in which the image will be received
@@ -603,7 +609,7 @@ def add_word_to_wordlist(filename, word, backup_folder, is_first_word=False):
             file.write('|' + word)
 
 
-def read_file_from_backup(filename):
+def read_description_file_from_backup(filename):
     # Open the file in read mode and read each string from the file
     with open(filename, 'r') as file:
         # read the entire file into a string
@@ -612,22 +618,30 @@ def read_file_from_backup(filename):
         words = file_contents.split('|')
         return words
 
-# Reconstruct from backup
-
 
 def reconstruct_book_from_backup(backup_folder):
     # read in each array of items from the back up folder
-    puzzle_descriptions_list = read_file_from_backup(
+    puzzle_descriptions_list = read_description_file_from_backup(
         f"{backup_folder}\\puzzle_descriptions.txt")
-    puzzle_facts_list = read_file_from_backup(
-        f"{backup_folder}\\puzzle_fun_facts.txt")
-    puzzle_words_list = read_file_from_backup(
-        f"{backup_folder}\\puzzle_words.txt")
+
+    # puzzle_facts_list = read_file_from_backup(
+    #     f"{backup_folder}\\puzzle_fun_facts.txt")
+    # puzzle_words_list = read_file_from_backup(
+    #     f"{backup_folder}\\puzzle_words.txt")
     puzzle_topics_list = get_topics_from_file()
 
     # read in each image from the back up folder into a list
     theme_images_list = []
     puzzle_images_list = []
+    puzzle_words_list = []
+    puzzle_facts_list = []
+
+    for word in puzzle_descriptions_list:
+        next_puzzle_words = read_puzzle_words(word, backup_folder)
+        puzzle_words_list.append(next_puzzle_words)
+        next_fact = read_fun_filled_fact(word, backup_folder)
+        puzzle_facts_list.append(next_fact)
+
     if (reconstruct_puzzles_chk_var.get() == 1):
         print("reconstructing puzzles from text files...")
         for word in puzzle_descriptions_list:
@@ -752,18 +766,20 @@ def batch_submit():
     print(topics)
 
     # now create a list of words from each of those words
-
+    count = 0
     for topic in topics:
-        # if (check_if_topic_already_created(base_file_path, topic)):
-        #     print(f"Skipping topic {topic} because it already exists.")
-        #     continue
+        print(f"processing topic {count + 1} of {len(topics)}")
+        count += 1
+        if (check_if_topic_already_created(base_file_path, topic)):
+            print(f"Skipping topic {topic} because it already exists.")
+            continue
 
         time.sleep(1)
         print(topic)
 
         print(f"generating puzzle clues for {topic}...")
 
-        prompt = puzzle_clues_prompt.format(topic=topic)
+        prompt = puzzle_clues_prompt.format(theme=theme, topic=topic)
         messages = [{'role': 'user', 'content': prompt}]
         try:
             response = openai.ChatCompletion.create(
@@ -844,10 +860,10 @@ def batch_submit():
 
         # sleep for 15 seconds to avoid hitting the API rate limit
         time.sleep(15)
-    # Copy the puzzle words, descriptions, and fun facts to the folder
-    # Assuming these are text files, if not, adjust accordingly
-    backup_text_lists(puzzle_words_list, puzzle_descriptions,
-                      puzzle_fun_facts, base_file_path)
+        # Copy the puzzle words, descriptions, and fun facts to the folder
+        # Assuming these are text files, if not, adjust accordingly
+        backup_text_lists(topic, puzzle_words_list, puzzle_descriptions,
+                          puzzle_fun_facts, base_file_path)
 
     backup_content(theme, theme_images_list, puzzle_images_list, puzzle_words_list,
                    puzzle_descriptions, puzzle_fun_facts, puzzle_text_images_list)
@@ -856,8 +872,45 @@ def batch_submit():
                 puzzle_images_list, puzzle_descriptions, puzzle_fun_facts, topics)
 
 
-def backup_text_lists(puzzle_words_list, puzzle_descriptions, puzzle_fun_facts, base_file_path):
+def write_puzzle_words(topic, puzzle_words, backup_folder):
+    # Open the file in write mode and write each string to the file
+    with open(f"{backup_folder}\\{topic}_puzzle_words.txt", 'w') as file:
+        # join the list of words into a string
+        file.write(puzzle_words)
+
+
+def read_puzzle_words(topic, backup_folder):
+    # Open the file in read mode and read each string from the file
+    with open(f"{backup_folder}\\{topic}_puzzle_words.txt", 'r') as file:
+        # read the entire file into a string
+        file_contents = file.read()
+        # split the string into an array of strings
+        return file_contents
+
+
+def write_fun_filled_fact(topic, puzzle_fun_fact, backup_folder):
+    # Open the file in write mode and write each string to the file
+    with open(f"{backup_folder}\\{topic}_puzzle_fact.txt", 'w') as file:
+        # join the list of words into a string
+        file.write(puzzle_fun_fact)
+
+
+def read_fun_filled_fact(topic, backup_folder):
+    # Open the file in read mode and read each string from the file
+    with open(f"{backup_folder}\\{topic}_puzzle_fact.txt", 'r') as file:
+        # read the entire file into a string
+        file_contents = file.read()
+        # split the string into an array of strings
+        return file_contents
+
+
+def backup_text_lists(topic, puzzle_words_list, puzzle_descriptions, puzzle_fun_facts, base_file_path):
     backup_folder = base_file_path
+    # write the puzzle words to a file based on the topic
+    write_puzzle_words(topic, puzzle_words_list[-1], backup_folder)
+    # write the puzzle fun filled fact file based on the topic
+    write_fun_filled_fact(topic, puzzle_fun_facts[-1], backup_folder)
+
     add_word_to_wordlist(
         "puzzle_words", puzzle_words_list[-1], backup_folder, len(puzzle_words_list) == 1)
     add_word_to_wordlist(
