@@ -631,14 +631,11 @@ def reconstruct_book_from_backup(backup_folder):
     puzzle_facts_list = []
 
     # strip spaces from topics, by mapping strip function
-    puzzle_topics_list = get_topics_from_file()
-    topics = list(map(str.strip, puzzle_topics_list))
-    # remove punctuation from all topics
-    topics = [topic.translate(str.maketrans(
-        '', '', string.punctuation)) for topic in topics]
-    puzzle_descriptions_list = topics
+    puzzle_topics_list = get_topics_from_file()  # raw topics
+    puzzle_descriptions_list = clean_topics(
+        puzzle_topics_list)  # topic file prefixes
     # for word in puzzle_descriptions_list:
-    for word in topics:
+    for word in puzzle_descriptions_list:
         next_puzzle_words = read_puzzle_words(word, backup_folder)
         puzzle_words_list.append(next_puzzle_words)
         next_fact = read_fun_filled_fact(word, backup_folder)
@@ -675,6 +672,15 @@ def reconstruct_book_from_backup(backup_folder):
     print("reconstructing book...")
     create_book(puzzle_words_list, theme_images_list,
                 puzzle_images_list, puzzle_descriptions_list, puzzle_facts_list, puzzle_topics_list)
+
+
+def clean_topics(puzzle_topics_list):
+    topics = list(map(str.strip, puzzle_topics_list))
+    # remove punctuation from all topics
+    topics = [topic.translate(str.maketrans(
+        '', '', string.punctuation)) for topic in topics]
+
+    return topics
 
 
 def construct_book_from_backup():
