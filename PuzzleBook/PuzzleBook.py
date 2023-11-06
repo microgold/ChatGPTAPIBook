@@ -862,7 +862,7 @@ def batch_submit():
         set_normal_cursor()
 
         # come up with a fun filled fact
-        print(f"creating a fun filled fact about {topic}...")
+        print(f"creating a fun filled fact about {topic}....")
         create_fun_filled_fact(puzzle_fun_facts, GPT_Model,
                                topic, fun_filled_fact_prompt)
 
@@ -929,8 +929,8 @@ def backup_text_lists(topic, puzzle_words_list, puzzle_descriptions, puzzle_fun_
 
 def create_fun_filled_fact(puzzle_fun_facts, GPT_Model, topic, fun_filled_fact_prompt):
     try:
-        # f"Come up with one fun filled fact about {pluralize(topic)}).\n"
-        promptForFact = fun_filled_fact_prompt.format(topic=pluralize(topic))
+        # f"Come up with one fun filled fact about {topic}). Correct for pluralization and grammar\n"
+        promptForFact = fun_filled_fact_prompt.format(topic=topic)
         messages = [{'role': 'user', 'content': promptForFact}]
         response = openai.ChatCompletion.create(
             model=GPT_Model,
