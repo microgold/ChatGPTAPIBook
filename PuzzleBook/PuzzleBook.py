@@ -99,6 +99,28 @@ def create_dedication_page(contents, styles, dedictation_phrase):
         'centered', parent=styles['Italic'], alignment=TA_CENTER)
     contents.append(Paragraph(dedictation_phrase, centered_italic_style))
     contents.append(PageBreak())
+    
+def create_welcome_page(contents, styles):
+    # get the welcome page path from the config file
+    welcome_page_path = ""
+    with open('puzzlebook.config', 'r') as file:
+        data = json.load(file)
+        welcome_page_path = data["welcomePagePath"]
+    
+    # get html text from the welcome page file
+    welcome_page_content = ""
+    with open(welcome_page_path, 'r') as file:
+        welcome_page_content = file.read()        
+    
+    print('calling create_welcome_page')
+    # Dynamically determine or generate header_content and footer_content here
+    # center dedication phrase in the center of the page
+    contents.append(Spacer(left_margin + .75, .25*72))
+    # create a new paragraph style and add the welcome page content
+    welcome_page_style = ParagraphStyle(
+        'welcome', parent=styles['Normal'], alignment=TA_LEFT, leftIndent=inch*.25, fontSize=12, leading=14)
+    contents.append(Paragraph(welcome_page_content, welcome_page_style))
+    contents.append(PageBreak())
 
 
 def create_title_page(contents, styles, title, subtitle, author, coverImagePath):
@@ -139,9 +161,7 @@ def create_publishing_page(contents, styles, title, subtitle, author, publisher,
         'centered', parent=styles['Normal'], alignment=TA_CENTER)
     contents.append(Paragraph(f"ISBN {isbn}", centered_style))
     contents.append(Spacer(left_margin, .25*72))
-    contents.append(Paragraph(publisher, centered_style))
-    contents.append(Spacer(left_margin, .25*72))
-    contents.append(Paragraph(f"© {year} {author}", centered_style))
+    contents.append(Paragraph(f"Copyright {year} {publisher}. All Rights Reserved.", centered_style))
     contents.append(PageBreak())
 
 
@@ -220,9 +240,10 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
                                subtitle, author,
                                publisher, year, isbn, coverImagePath)
         print("creating dedication page")
-        create_dedication_page(
-            contents, styles, "This book is dedicated to my wife and son.")
-
+        # ****** REMOVE For Now ********
+        # create_dedication_page(
+        #     contents, styles, "This book is dedicated to my wife and son.")
+        create_welcome_page(contents, styles)
         headline_style = styles['Heading1']
         normal_style = styles['Normal']
         print(f"creating puzzle pages ({len(puzzle_words_list)} pages.)")
