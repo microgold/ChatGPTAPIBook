@@ -316,7 +316,7 @@ def create_book(puzzle_words_list, theme_images_list, puzzle_images_list, puzzle
             ])
 
             image_table = Table(data, colWidths=[
-                puzzle_offset, 2*inch, 2.5*inch])
+                puzzle_offset, 1.80*inch, 2.70*inch])
 
             image_table.setStyle(image_table_style)
 
