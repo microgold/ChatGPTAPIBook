@@ -198,7 +198,7 @@ def generate_image(theme):
         model="dall-e-2",
         prompt=f"cartoon image of {theme}",
         n=1,  # Number of images to generate
-        size="1024x1024",  # Size of the generated image
+        size="256x256",  # Size of the generated image
         response_format="url"  # Format in which the image will be received
     )
 
