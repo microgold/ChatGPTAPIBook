@@ -195,10 +195,10 @@ def create_pdf(puzzle_word_text):
 
 def generate_image(theme):
     response = openai.Image.create(
-        model="image-alpha-001",
+        model="dall-e-2",
         prompt=f"cartoon image of {theme}",
         n=1,  # Number of images to generate
-        size="256x256",  # Size of the generated image
+        size="1024x1024",  # Size of the generated image
         response_format="url"  # Format in which the image will be received
     )
 
@@ -221,7 +221,7 @@ def display_image_from_url(image_holder, url):
 
     # Open and display the image using PIL and tkinter
     image = Image.open(image_data)
-    image.resize((200, 200), Image.ANTIALIAS)
+    image.resize((200, 200), Image.LANCZOS)
 
     # Save the image as a PNG
     image.save(pil_image_path, "PNG")

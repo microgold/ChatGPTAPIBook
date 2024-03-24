@@ -65,10 +65,10 @@ def create_pdf(dialog_text):
 
 def generate_image(animal1, animal2, scenario):
     response = openai.Image.create(
-        model="image-alpha-001",
+        model="dall-e-2",
         prompt=f"cartoon image of a {animal1} and a {animal2} discussing {scenario}",
         n=1,  # Number of images to generate
-        size="256x256",  # Size of the generated image
+        size="1024x1024",  # Size of the generated image
         response_format="url"  # Format in which the image will be received
     )
 
