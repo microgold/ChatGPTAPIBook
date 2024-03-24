@@ -8,7 +8,7 @@
       "request": "launch",
       "program": "${file}",
       "console": "integratedTerminal",
-      "pythonPath": "./puzzlebook/Scripts/python"
+      "python": "./puzzlebook/Scripts/python"
     }
   ]
 }
