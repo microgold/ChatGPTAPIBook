@@ -1,0 +1,34 @@
+{
+  "questions": [
+    {
+      "question": "When was the Constitution of the United States adopted?",
+      "options": ["1776", "1787", "1791", "1812"],
+      "answer": "1787"
+    },
+    {
+      "question": "Who is known as the 'Father of the Constitution'?",
+      "options": [
+        "George Washington",
+        "Thomas Jefferson",
+        "James Madison",
+        "Benjamin Franklin"
+      ],
+      "answer": "James Madison"
+    },
+    {
+      "question": "Which of the following is NOT a right protected by the First Amendment?",
+      "options": [
+        "Freedom of speech",
+        "Freedom of religion",
+        "Right to bear arms",
+        "Freedom of the press"
+      ],
+      "answer": "Right to bear arms"
+    },
+    {
+      "question": "How many amendments does the Constitution have?",
+      "options": ["10", "27", "50", "100"],
+      "answer": "27"
+    }
+  ]
+}
