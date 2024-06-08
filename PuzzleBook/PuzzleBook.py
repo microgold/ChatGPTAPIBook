@@ -1,3 +1,11 @@
+from tkinter import messagebox
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Frame, PageTemplate
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
+from PuzzleBoardCreator import PuzzleBoardCreator
+from PIL import Image, ImageTk, ImageDraw, ImageFont
+import requests
 import shutil
 from reportlab.pdfgen import canvas
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Spacer, Table, TableStyle
@@ -9,17 +17,11 @@ import time
 import tkinter as tk
 from tkinter import ttk
 from dotenv import load_dotenv
-import openai
-import requests
-from PIL import Image, ImageTk, ImageDraw, ImageFont
-from PuzzleBoardCreator import PuzzleBoardCreator
+from openai import OpenAI
+load_dotenv()
+key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=key)
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Image as ReportLabImage, PageBreak, Frame, PageTemplate
-
-from reportlab.lib.styles import getSampleStyleSheet
-from tkinter import messagebox
 
 pil_image_path = "c:\\temp\\temp__puzzlebook_image.png"
 puzzle_image_path = 'c:\\temp\\alphabet_grid.png'
@@ -27,10 +29,6 @@ puzzle_image_path = 'c:\\temp\\alphabet_grid.png'
 puzzle_board_creator = PuzzleBoardCreator()
 
 generated_image = None
-
-load_dotenv()
-key = os.getenv("OPENAI_API_KEY")
-openai.api_key = key
 
 
 def set_wait_cursor():
@@ -194,15 +192,14 @@ def create_pdf(puzzle_word_text):
 
 
 def generate_image(theme):
-    response = openai.Image.create(
-        model="dall-e-2",
-        prompt=f"cartoon image of {theme}",
-        n=1,  # Number of images to generate
-        size="256x256",  # Size of the generated image
-        response_format="url"  # Format in which the image will be received
-    )
+    response = client.images.generate(model="dall-e-2",
+                                      prompt=f"cartoon image of {theme}",
+                                      n=1,  # Number of images to generate
+                                      size="256x256",  # Size of the generated image
+                                      response_format="url"  # Format in which the image will be received
+                                      )
 
-    image_url = response.data[0]["url"]
+    image_url = response.data[0].url
     print(image_url)
     return image_url
 
@@ -325,19 +322,17 @@ def batch_submit():
 
     prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
     messages = [{'role': 'user', 'content': prompt}]
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.8,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.6,
-    )
+    response = client.chat.completions.create(model="gpt-3.5-turbo",
+                                              messages=messages,
+                                              temperature=0.8,
+                                              top_p=1.0,
+                                              frequency_penalty=0.0,
+                                              presence_penalty=0.6)
 
     print(prompt)
 
     # retrieve the list of words created by ChatGPT
-    chatGPTAnswer = response["choices"][0]["message"]["content"]
+    chatGPTAnswer = response.choices[0].message.content
     print(chatGPTAnswer)
     # split the comma delimited list of words into a list
     topics = chatGPTAnswer.split(',')
@@ -353,19 +348,17 @@ def batch_submit():
 
         prompt = f"Create a comma delimited list of 40 words having to do with the theme {topic}. None of the words in the list should repeat\n"
         messages = [{'role': 'user', 'content': prompt}]
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=messages,
-            temperature=0.8,
-            top_p=1.0,
-            frequency_penalty=0.0,
-            presence_penalty=0.6,
-        )
+        response = client.chat.completions.create(model="gpt-3.5-turbo",
+                                                  messages=messages,
+                                                  temperature=0.8,
+                                                  top_p=1.0,
+                                                  frequency_penalty=0.0,
+                                                  presence_penalty=0.6)
 
         print(prompt)
 
         # retrieve the list of words created by ChatGPT
-        chatGPTAnswer = response["choices"][0]["message"]["content"]
+        chatGPTAnswer = response.choices[0].message.content
         print(chatGPTAnswer)
         # split the comma delimited list of words into a list
         words = chatGPTAnswer.split(',')
@@ -412,19 +405,17 @@ def submit():
 
     prompt = f"Create a comma delimited list of 40 words having to do with the theme {theme}. None of the words in the list should repeat\n"
     messages = [{'role': 'user', 'content': prompt}]
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.8,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.6,
-    )
+    response = client.chat.completions.create(model="gpt-3.5-turbo",
+                                              messages=messages,
+                                              temperature=0.8,
+                                              top_p=1.0,
+                                              frequency_penalty=0.0,
+                                              presence_penalty=0.6)
 
     print(prompt)
 
     # retrieve the list of words created by ChatGPT
-    chatGPTAnswer = response["choices"][0]["message"]["content"]
+    chatGPTAnswer = response.choices[0].message.content
     print(chatGPTAnswer)
     # split the comma delimited list of words into a list
     words = chatGPTAnswer.split(',')

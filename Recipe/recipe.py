@@ -1,15 +1,16 @@
-from flask import Flask, render_template, request
-import openai
-import os
 from dotenv import load_dotenv
+import os
+from flask import Flask, render_template, request
+from openai import OpenAI
 
 # Initialize environment variables
 load_dotenv()
+client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
 
 app = Flask(__name__)
 
 # Securely fetch the API key using the dotenv library
-openai.api_key = os.getenv('OPENAI_API_KEY')
 
 dietary_restrictions = [
     "Gluten-Free",
@@ -77,17 +78,15 @@ def generate_recipe():
     messages = [{'role': 'user', 'content': prompt}]
 
     # Engage ChatGPT to receive the desired recipe
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.8,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.6,
-    )
+    response = client.chat.completions.create(model="gpt-3.5-turbo",
+                                              messages=messages,
+                                              temperature=0.8,
+                                              top_p=1.0,
+                                              frequency_penalty=0.0,
+                                              presence_penalty=0.6)
 
     # Extract the recipe from ChatGPT's response
-    recipe = response["choices"][0]["message"]["content"]
+    recipe = response.choices[0].message.content
 
     # Showcase the recipe on a new page
     return render_template('recipe.html', recipe=recipe)

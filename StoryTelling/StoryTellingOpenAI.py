@@ -1,26 +1,26 @@
+from tkinter import messagebox
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Image as ReportLabImage, Paragraph
+from reportlab.lib.units import inch
+from reportlab.lib.pagesizes import letter
+from PIL import Image, ImageTk
+import requests
 from io import BytesIO
 import os
 import time
 import tkinter as tk
 from tkinter import ttk
 from dotenv import load_dotenv
-import openai
-import requests
-from PIL import Image, ImageTk
+from openai import OpenAI
 
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Image as ReportLabImage, Paragraph
-from reportlab.lib.styles import getSampleStyleSheet
-from tkinter import messagebox
+load_dotenv()
+key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(api_key=key)
+
 
 pil_image_path = "c:\\temp\\temp__storytelling_image.png"
 
 generated_image = None
-
-load_dotenv()
-key = os.getenv("OPENAI_API_KEY")
-openai.api_key = key
 
 
 def set_wait_cursor():
@@ -64,15 +64,14 @@ def create_pdf(dialog_text):
 
 
 def generate_image(animal1, animal2, scenario):
-    response = openai.Image.create(
-        model="dall-e-2",
-        prompt=f"cartoon image of a {animal1} and a {animal2} discussing {scenario}",
-        n=1,  # Number of images to generate
-        size="128x128",  # Size of the generated image
-        response_format="url"  # Format in which the image will be received
-    )
+    response = client.images.generate(model="dall-e-2",
+                                      prompt=f"cartoon image of a {animal1} and a {animal2} discussing {scenario}",
+                                      n=1,  # Number of images to generate
+                                      size="512x512",  # Size of the generated image
+                                      response_format="url"  # Format in which the image will be received
+                                      )
 
-    image_url = response.data[0]["url"]
+    image_url = response.data[0].url
     print(image_url)
     return image_url
 
@@ -110,16 +109,14 @@ def submit():
     prompt = f"Create a play between a {animal1} and a {animal2} with 10 lines of dialog with each animal taking turns to speak. Leave a vertical space between lines after each animal speaks. Here is the scenario in which they will engage: {scenario}\n"
     # prompt = 'Hi There'
     messages = [{'role': 'user', 'content': prompt}]
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.8,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.6,
-    )
+    response = client.chat.completions.create(model="gpt-3.5-turbo",
+                                              messages=messages,
+                                              temperature=0.8,
+                                              top_p=1.0,
+                                              frequency_penalty=0.0,
+                                              presence_penalty=0.6)
 
-    chatGPTAnswer = response["choices"][0]["message"]["content"]
+    chatGPTAnswer = response.choices[0].message.content
     print(chatGPTAnswer)
     # make result_text scrollable
 

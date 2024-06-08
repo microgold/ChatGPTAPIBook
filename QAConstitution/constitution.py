@@ -11,7 +11,6 @@ from PyPDF2 import PdfReader
 
 load_dotenv()
 # Set your OpenAI API key
-openai.api_key = os.getenv('OPENAI_API_KEY')
 
 # Function to extract text from a PDF file
 
