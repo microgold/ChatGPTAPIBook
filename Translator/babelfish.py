@@ -1,19 +1,19 @@
 # pip install python-dotenv sounddevice numpy pydub pygame gtts wavio
 
+import wavio
+import pygame
+from gtts import gTTS
+import sounddevice as sd
 import json
 import os
 import tkinter as tk
 from tkinter import ttk
 from dotenv import load_dotenv
-import openai
-import sounddevice as sd
-from gtts import gTTS
-import pygame
-import wavio
+from openai import OpenAI
 
 load_dotenv()
 key = os.getenv("OPENAI_API_KEY")
-openai.api_key = key
+client = OpenAI(api_key=key)
 
 
 def set_wait_cursor():
@@ -30,16 +30,14 @@ def translate(language1, language2, text):
     prompt = f"Translate the following from {language1} to {language2}: {text}"
     # prompt = 'Hi There'
     messages = [{'role': 'user', 'content': prompt}]
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=messages,
-        temperature=0.8,
-        top_p=1.0,
-        frequency_penalty=0.0,
-        presence_penalty=0.6,
-    )
+    response = client.chat.completions.create(model="gpt-3.5-turbo",
+                                              messages=messages,
+                                              temperature=0.8,
+                                              top_p=1.0,
+                                              frequency_penalty=0.0,
+                                              presence_penalty=0.6)
 
-    chat_gpt_translation = response["choices"][0]["message"]["content"]
+    chat_gpt_translation = response.choices[0].message.content
     print('translation: ' + chat_gpt_translation)
     return chat_gpt_translation
 
@@ -96,10 +94,11 @@ def set_label(text):
 def transcribe():
     audio_file = open("c:\\temp\\myrecording.wav", "rb")
     set_label("Transcribing...")
-    transcription = openai.Audio.transcribe(model='whisper-1', file=audio_file)
+    transcription = client.audio.transcriptions.create(
+        model='whisper-1', file=audio_file)
     audio_file.close()
-    print('transcription: ' + f'{transcription["text"]}\n\n')
-    return transcription["text"]
+    print('transcription: ' + f'{transcription.text}\n\n')
+    return transcription.text
 
 
 def reset_status():
