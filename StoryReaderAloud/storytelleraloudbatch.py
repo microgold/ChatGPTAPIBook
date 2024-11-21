@@ -24,7 +24,7 @@ def text_to_speech(text, filename):
         voice="alloy",
         input=text
     )
-    response.stream_to_file(filename)
+    response.write_to_file(filename)
 
 
 def split_text(text, chunk_size=1000):
@@ -77,8 +77,8 @@ def main():
         print(f"Converting chunk {i+1} to speech...")
         temp_audio_files.append(filename)
         text_to_speech(text_chunk, filename)
-        if i == 2:
-            break
+        if i == 2:  # remove this line to convert the whole text
+            break   # and remove this line
 
     # Merge all audio files into one
     if temp_audio_files:

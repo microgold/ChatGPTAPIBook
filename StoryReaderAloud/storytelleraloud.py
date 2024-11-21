@@ -24,7 +24,7 @@ def text_to_speech(text, filename="output.mp3"):
             voice="nova",
             input=text
         )
-        response.stream_to_file(filename)
+        response.write_to_file(filename)
         print(f"Audio file created: {filename}")
     except Exception as e:
         print(f"Failed to create speech: {e}")
